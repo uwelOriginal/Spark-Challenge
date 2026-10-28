@@ -1,0 +1,19 @@
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# secrets: never commit keys
+.env
+.env.local
+.env.*.local
+
+# generated artifacts
+eval/results/*.json
+demo/*.webm
+
+# taste-skill working files (screenshots)
+.taste-skill/inspect/
+.taste-skill/before/
+.taste-skill/after/

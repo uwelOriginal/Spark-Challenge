@@ -1,0 +1,11 @@
+Una IA que convierte instrucciones confusas, tareas grandes y fechas límite en un plan de acción personalizado.
+
+Ejemplo: el estudiante sube la instrucción de un proyecto. La IA identifica entregables, fechas y requisitos, y los convierte en pasos de 10–30 minutos, con recordatorios y ajustes según el progreso.
+- IA: modelos de lenguaje, extracción de información y planificación.
+- Diferenciador: aprende qué formato de instrucciones, ritmo y recordatorios le funcionan mejor a cada estudiante.
+- Impacto: menos sobrecarga ejecutiva y mayor autonomía.
+
+El objetivo NO es una IA genérica para organizar tareas, sino una que cumpla con esas funciones,
+y que sirva de agente con capacidades de conectarse a lo que su usuario necesite, que lo apoye,
+se adapte a sus preferencias y necesidades, y organice su vida general (con debidas notificaciones),
+con un enfoque hacia aquellos estudiantes neurodivergentes que luchan con sobreestimulación.

@@ -1,0 +1,29 @@
+The Common Ground: Cognitive Load and Bandwidth Management
+Whether looking at physical solutions (noise-canceling headphones, weighted blankets) or digital/cognitive enhancements, the fundamental common ground is Cognitive Bandwidth Regulation.
+Neurodivergent overstimulation isn't just about loud noises or bright lights; it is the excessive expenditure of energy required to filter, translate, and process standard workplace environments. When too much energy goes toward surviving the environment (sensory filtering, decoding vague corporate speak, overcoming task initiation paralysis), zero energy is left for actual deep work.
+The MVP Concept: "AuraWork AI" — The Dynamic Cognitive Equalizer
+For your week-long challenge, a winning Gen AI MVP should act as an external pre-processor and digital noise-canceling layer for the professional workday. Instead of changing physical office walls, it dynamically filters a worker’s digital and informational environment to match their optimal cognitive threshold.
+Product Name Idea:
+AuraWork AI (or CognitiveEqualizer)
+The Core Value Proposition:
+A Gen AI-powered workspace companion that sits across a user's communication channels (Slack, Email, Zoom, and Jira) to filter out cognitive clutter, translate ambiguous corporate communication, manage sensory energy levels, and break down executive dysfunction in real-time.
+MVP Feature Breakdown (What to Build & Pitch)
+To pitch a functional MVP in a week, focus on three core pillars that leverage modern LLM capabilities (APIs like OpenAI, Anthropic, or open-source models):
+1. The "Sensory & Corporate Translation" Filter (Input Downscaler)
+The Problem: Vague feedback, passive-aggressive Slack messages, or dense, multi-page project briefs cause intense anxiety and overthinking.
+The Gen AI Solution: A text-reformatting engine. When the user highlights text or receives a message, the AI strips away emotional padding, sarcasm, and corporate jargon, converting it into direct, literal, bulleted action items.
+MVP Prompt Concept: "Rewrite this Slack thread into literal, step-by-step facts with zero emotional subtext or ambiguity."
+2. The Task Deconstructor (Executive Function Booster)
+The Problem: "Task paralysis" occurs when a project brief is too large (e.g., "Prepare Q3 Marketing Strategy"), leading to overwhelm and burnout.
+The Gen AI Solution: An automated breakdown tool (similar to Goblin.tools style functionality) integrated directly into project tools. It takes any vague assignment and breaks it down into granular, micro-steps with estimated time blocks and low-friction starting points.   
+accessaibility.org
+3. Energy-Budget Calendar Guard (Pacing Monitor)
+The Problem: Back-to-back meetings drain a neurodivergent brain completely, leading to afternoon meltdowns or shutdown.
+The Gen AI Solution: An AI calendar auditor that tracks meeting density. If it detects three heavy meetings in a row, it automatically flags them, drafts polite decline/reschedule emails, or inserts mandatory 15-minute "sensory recovery buffers" into the calendar.
+Suggested Pitch Structure for Your Challenge
+When pitching this MVP to judges at the end of the week, use this narrative arc:
+The Hook: "We spend billions on ergonomic chairs and office snacks, but we ignore the invisible architecture of work: Cognitive Overload."
+The Pain Point: For neurodivergent professionals, 40% of daily energy is wasted just translating ambiguous emails, filtering digital clutter, and recovering from sensory-draining meetings.
+The Solution (AuraWork AI): Demonstrate a quick mock-up or coded prototype showing a messy, passive-aggressive corporate email transformed instantly by your Gen AI layer into a clean, literal task list with zero cognitive friction.
+Why Gen AI Makes It Possible: Unlike rigid software, LLMs are uniquely equipped to handle the nuance of human communication and dynamically adapt to different cognitive profiles on the fly.
+Impact: Shifts the burden of accommodation away from the individual's internal stamina and onto an intelligent digital infrastructure, unlocking full workforce functionality

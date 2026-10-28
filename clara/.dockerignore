@@ -1,0 +1,9 @@
+node_modules
+.next
+.env
+.env.*
+demo
+eval/results
+.taste-skill
+tests
+*.log

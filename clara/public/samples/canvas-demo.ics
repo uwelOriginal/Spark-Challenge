@@ -1,0 +1,57 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Clara//Canvas feed DEMO (synthetic)//ES
+X-WR-CALNAME:Calendario de Canvas (demo sintético)
+BEGIN:VEVENT
+UID:event-assignment-90101
+DTSTART:20261113T235900
+DTEND:20261113T235900
+SUMMARY:Actividad integradora 2: Ensayo de reflexión crítica [ETI1001]
+DESCRIPTION:Ética\, persona y sociedad (ETI1001) — Actividad integradora 
+ 2\nEnsayo de reflexión crítica\n\nInstrucciones:\nElabora un ensayo de re
+ flexión crítica sobre el impacto de la inteligencia artificial en la vida
+  universitaria. Retoma al menos uno de los autores revisados en clase y r
+ elaciónalo con tu experiencia personal.\n\nEl ensayo debe tener una prese
+ ntación profesional y estar fundamentado en fuentes confiables. Recuerda 
+ que la calidad de la argumentación es lo más importante.\n\nEntrega: sube
+  tu archivo a Canvas a más tardar el viernes 13 de noviembre a las 23:59 
+ h.\n\nCriterios de evaluación:\n- Argumentación y postura propia: 40%\n- 
+ Uso e integración de fuentes: 30%\n- Redacción y ortografía: 20%\n- Forma
+ to: 10%\n\nNota: la fecha límite para esta actividad en el calendario del
+  curso es el jueves 12 de noviembre.\nSe penalizarán las entregas tardías
+ .
+URL:https://canvas.example/courses/demo
+END:VEVENT
+BEGIN:VEVENT
+UID:event-assignment-90102
+DTSTART:20261118T070000
+DTEND:20261118T070000
+SUMMARY:Práctica 4: Circuitos RC [F2003B]
+DESCRIPTION:Laboratorio de Física II (F2003B) — Práctica 4: Circuitos RC\
+ nReporte de laboratorio (equipos de 3)\n\nEntregables:\n1. Reporte en PDF
+  con: introducción\, marco teórico\, metodología\, resultados (tablas y g
+ ráficas de carga y descarga)\, análisis y conclusiones.\n2. Archivo .csv 
+ con las mediciones crudas.\n3. Hoja de cálculo o script con el ajuste exp
+ onencial para obtener la constante de tiempo τ.\n\nEl análisis debe ser p
+ rofundo y comparar el valor experimental de τ con el teórico\, incluyendo
+  el porcentaje de error.\nFecha de entrega: miércoles 18 de noviembre\, a
+ ntes del inicio de la clase.\nSolo un integrante del equipo sube los arch
+ ivos a Canvas.\nRúbrica: Resultados 35%\, Análisis 35%\, Formato 15%\, Co
+ nclusiones 15%.
+URL:https://canvas.example/courses/demo
+END:VEVENT
+BEGIN:VEVENT
+UID:event-assignment-90103
+DTSTART:20261127T235900
+DTEND:20261127T235900
+SUMMARY:Proyecto integrador [EMP1002]
+DESCRIPTION:Fundamentos de emprendimiento (EMP1002) — Proyecto integrador
+ \n\nEn equipos\, desarrollen una propuesta de negocio innovadora con impa
+ cto social.\nDeberán presentar su propuesta frente al grupo en la semana 
+ 14 y entregar un documento ejecutivo.\nLa presentación debe ser dinámica 
+ y creativa. Todos los integrantes deben participar.\nEl documento ejecuti
+ vo debe incluir: problema\, solución\, mercado\, modelo de negocio y fina
+ nzas básicas.\nHabrá coevaluación entre los integrantes del equipo.
+URL:https://canvas.example/courses/demo
+END:VEVENT
+END:VCALENDAR
