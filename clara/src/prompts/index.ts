@@ -8,6 +8,7 @@ export const PROMPT_VERSION = "decode-v2.2 / chat-v2.1 / theme-v1.0 / changes-v1
 // interests, but they never change a fact taken from the sources, and analogies are always labelled.
 // chat-v2.1: a request for a different interest always comes with a settings proposal.
 // chat-v2.0 / theme-v1.0: interest-based personalization, figures, settings proposals (docs/15).
+// decode-v2.3: relative dates ("mañana", "el viernes") become real dates, counted from the source's date.
 // decode-v2.2: the literal rule names analogies explicitly and says why (extraction only).
 // decode-v2.1: other dated events in the sources (e.g. an exam announced in class) become their own deadlines.
 // The same prompts run on every provider in the router (Groq free tier first, Anthropic on escalation).
@@ -27,7 +28,7 @@ Rules:
 5. If two sources, or two parts of one source, conflict (for example the brief and the class transcript give different dates or lengths), add an ambiguity with kind "contradiction". Quote one side and name both sides and their sources in "issue" (for example "The written brief says ... In class the professor said ..."). Never choose one side silently, and list each deadline as stated.
 6. Information said in class counts as a real source. If the class transcript answers something the written brief leaves open, use it and quote it, but still mention in "issue" or "details" that it was only said in class when that matters.
 7. For each ambiguity write "question": one polite, specific question the student could send to the professor, answerable in one line, and "why_it_matters": one sentence on how the answer changes the work. Order ambiguities from most to least important (contradictions and anything that changes the due date, the deliverable or the grade first). List at most 8; merge minor related points into one.
-8. Deadlines: also list other dated course events the sources mention (an exam, another deliverable, a presentation), each as its own deadline whose "item" names it, so the student can put it in the calendar. "date" is YYYY-MM-DD only if the source gives at least day and month; if the year is missing, use the next occurrence on or after today's date (given by the student). Otherwise null. "time" is HH:MM in 24-hour format only if the source gives a time, otherwise null. Never compute a date from relative words like "next week".
+8. Deadlines: also list other dated course events the sources mention (an exam, another deliverable, a presentation), each as its own deadline whose "item" names it, so the student can put it in the calendar. "date" is YYYY-MM-DD only if the source gives at least day and month; if the year is missing, use the next occurrence on or after today's date (given by the student). If the source uses a relative word that names one day ("hoy", "mañana", "pasado mañana", "el viernes", "tomorrow", "in 3 days"), compute that date, counting from the date attribute of that source, or from today's date if it has none; a bare weekday means its next occurrence after that date. Keep the source's words in "when". A phrase that names no single day ("next week", "pronto", "a fin de mes") stays null and becomes an ambiguity. Otherwise null. "time" is HH:MM in 24-hour format only if the source gives a time, otherwise null.
 9. "steps": 3 to 6 concrete steps to START the work (not to finish it). Each takes 10 to 30 minutes and has "done_when": a visible, checkable result. The first step must take 10 minutes or less and require no decisions. If a step depends on an open ambiguity, say so in the step.
 10. Never write any part of the assignment itself: no essay text, no answers, no solution code, no outlines with content.
 11. "literal_summary": 2 to 4 short sentences: what to produce, for which course or activity, and when it is due. "course": the course name or code if stated, otherwise null.
@@ -82,8 +83,8 @@ For each passage: "time" is the time mark of the line where it starts (as writte
 export const TRANSCRIBE_SYSTEM = `You transcribe course documents. Copy all readable text from the image or PDF exactly as written, keeping line breaks and list markers. Do not summarize, translate, correct or comment. If there is no readable text, return an empty response.`;
 
 /** Wrap each source in tags the prompts understand. */
-export function sourcesBlock(sources: { id: string; kind: string; name: string; text: string }[], fence: (t: string) => string) {
+export function sourcesBlock(sources: { id: string; kind: string; name: string; text: string; date?: string }[], fence: (t: string) => string) {
   return sources
-    .map((s) => `<source id="${s.id}" kind="${s.kind}" name="${s.name.replace(/"/g, "'")}">\n${fence(s.text)}\n</source>`)
+    .map((s) => `<source id="${s.id}" kind="${s.kind}" name="${s.name.replace(/"/g, "'")}"${s.date ? ` date="${s.date}"` : ""}>\n${fence(s.text)}\n</source>`)
     .join("\n\n");
 }

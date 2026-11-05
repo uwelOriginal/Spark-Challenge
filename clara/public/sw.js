@@ -1,6 +1,7 @@
-// Minimal service worker: makes Clara installable and keeps the app shell available offline.
-// API calls always go to the network (nothing about the student's work is cached here).
-const CACHE = "clara-shell-v1";
+// Service worker: makes Clara installable, keeps the app shell available offline, and shows reminders.
+// API calls always go to the network (nothing about the student's work is cached by fetch here).
+const CACHE = "clara-shell-v2";
+const REMINDERS = "clara-reminders-v1"; // written by src/lib/notify.ts; the texts never go to the server
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(["/", "/icons/icon.svg"])));
@@ -9,7 +10,7 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))),
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE && k !== REMINDERS).map((k) => caches.delete(k)))),
   );
   self.clients.claim();
 });
@@ -20,4 +21,50 @@ self.addEventListener("fetch", (event) => {
   if (event.request.mode === "navigate") {
     event.respondWith(fetch(event.request).catch(() => caches.match("/")));
   }
+});
+
+async function reminderText(id) {
+  try {
+    const cache = await caches.open(REMINDERS);
+    const res = await cache.match("/__clara/reminders");
+    const texts = res ? await res.json() : {};
+    if (texts[id]) return texts[id];
+  } catch {
+    /* fall through to the plain text below */
+  }
+  return { title: "Clara", body: "Tienes un recordatorio. / You have a reminder.", assignment: "" };
+}
+
+// The push carries only an id. A phone must show something for every push, so there is always a fallback.
+self.addEventListener("push", (event) => {
+  let id = "";
+  try {
+    id = event.data ? event.data.json().id : "";
+  } catch {
+    /* unreadable payload: show the plain text */
+  }
+  event.waitUntil(
+    reminderText(id).then((r) =>
+      self.registration.showNotification(r.title, {
+        body: r.body,
+        icon: "/icons/icon-192.png",
+        badge: "/icons/icon-192.png",
+        tag: id || "clara",
+        data: { url: r.assignment ? `/?open=${encodeURIComponent(r.assignment)}` : "/" },
+      }),
+    ),
+  );
+});
+
+// Tapping a reminder opens Clara on that assignment, reusing an open window when there is one.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      const open = list[0];
+      if (open) return open.navigate(url).then((c) => (c || open).focus()).catch(() => open.focus());
+      return self.clients.openWindow(url);
+    }),
+  );
 });

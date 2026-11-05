@@ -10,7 +10,13 @@ import { newId, type Assignment, type ChatTurn, type Settings, type Source } fro
 
 export type NewSource = Omit<Source, "id" | "addedAt">;
 
-export const toInputs = (sources: Source[]): SourceInput[] => sources.map(({ id, kind, name, text }) => ({ id, kind, name, text }));
+// Each source says which day it is from, so "mañana" in Tuesday's recording means Wednesday even if uploaded on Friday.
+export const toInputs = (sources: Source[]): SourceInput[] =>
+  sources.map(({ id, kind, name, text, addedAt, saidOn }) => ({ id, kind, name, text, date: saidOn ?? localDay(new Date(addedAt)) }));
+
+export function localDay(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 const now = () => new Date().toISOString();
 
@@ -86,10 +92,17 @@ export async function addMaterial(a: Assignment, s: NewSource, voice: Voice, kin
   const joined = (list: Source[]) => list.map((x) => `${kindName(x.kind)}: ${x.name}\n${x.text}`).join("\n\n");
   const [decode, changes] = await Promise.all([api.decode(toInputs(sources), voice), api.changes(joined(a.sources), joined(sources), voice)]);
   const note: ChatTurn = { role: "assistant", text: s.name, at: now(), changes };
+  // A date the student chose by hand survives the re-read, unless the same deadline now has a date of its own.
+  const kept = a.decode.deadlines.filter((x) => x.date_set_by_student);
+  const deadlines = decode.deadlines.map((x) => {
+    const mine = kept.find((k) => k.item === x.item);
+    return mine && !x.date ? { ...x, date: mine.date, time: mine.time, date_set_by_student: true } : x;
+  });
+  const extra = kept.filter((k) => !decode.deadlines.some((x) => x.item === k.item));
   return {
     ...a,
     sources,
-    decode,
+    decode: { ...decode, deadlines: [...deadlines, ...extra] },
     done: a.done.filter((action) => decode.steps.some((st) => st.action === action)),
     picked: decode.ambiguities.map((_, i) => i),
     chat: [...a.chat, note],
@@ -107,6 +120,16 @@ export async function answer(a: Assignment, voice: Voice, settings: Settings): P
   const history = a.chat.slice(0, -1).filter((c) => !c.changes).map((c) => ({ role: c.role, text: c.text }));
   const r = await api.chat(toInputs(a.sources), summaryText(a.decode), history, question.text, voice, profileFor(settings));
   return { ...a, chat: [...a.chat, { role: "assistant", text: r.answer, at: now(), result: r }] };
+}
+
+/** The student sets or corrects a due date by hand (index -1 adds one when Clara found none). */
+export function withDeadlineDate(a: Assignment, index: number, date: string | null, item: string): Assignment {
+  const list = a.decode.deadlines;
+  const deadlines =
+    index >= 0
+      ? list.map((x, i) => (i === index ? { ...x, date, date_computed: false, date_check: "none" as const, date_set_by_student: true } : x))
+      : [...list, { item, when: date ?? "", date, time: null, quote: "", source_id: "", verified: true, date_check: "none" as const, date_set_by_student: true }];
+  return { ...a, decode: { ...a.decode, deadlines } };
 }
 
 export function toggleStep(a: Assignment, i: number): Assignment {

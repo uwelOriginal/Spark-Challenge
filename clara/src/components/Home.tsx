@@ -5,7 +5,7 @@ import { createAssignment, withId } from "@/lib/actions";
 import type { Voice } from "@/lib/api";
 import { exampleSources } from "@/lib/example";
 import type { Strings } from "@/lib/i18n";
-import { byDue, nextDue, type Assignment, type Source } from "@/lib/store";
+import { byDue, nextDue, type Assignment, type Settings, type Source } from "@/lib/store";
 import MaterialInput from "./MaterialInput";
 import { daysUntil, errorText, FlowSteps, formatDate, Icon, Notice } from "./ui";
 
@@ -57,7 +57,7 @@ function Row({ a, t, onOpen }: { a: Assignment; t: Strings; onOpen: (id: string)
 }
 
 /** Step 1: gather the material, then let Clara read it. */
-export function Upload({ t, voice, first, onCreated }: { t: Strings; voice: Voice; first: boolean; onCreated: (a: Assignment) => void }) {
+export function Upload({ t, voice, settings, onSettings, first, onCreated }: { t: Strings; voice: Voice; settings: Settings; onSettings: (p: Partial<Settings>) => void; first: boolean; onCreated: (a: Assignment) => void }) {
   const [sources, setSources] = useState<Source[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +82,7 @@ export function Upload({ t, voice, first, onCreated }: { t: Strings; voice: Voic
       </header>
 
       <section className="panel">
-        <MaterialInput t={t} defaultKind={sources.length === 0 ? "brief" : "other"} onAdd={(s) => setSources((prev) => [...prev, withId(prev, s)])} />
+        <MaterialInput t={t} canvasUrl={settings.canvasFeedUrl} onCanvasUrl={(canvasFeedUrl) => onSettings({ canvasFeedUrl })} defaultKind={sources.length === 0 ? "brief" : "other"} onAdd={(s) => setSources((prev) => [...prev, withId(prev, s)])} />
       </section>
 
       {sources.length > 0 && (

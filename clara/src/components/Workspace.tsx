@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { addMaterial, answer, toggleStep, withQuestion } from "@/lib/actions";
+import { addMaterial, answer, toggleStep, withQuestion , withDeadlineDate } from "@/lib/actions";
 import type { Voice } from "@/lib/api";
 import { calendarFile, calendarLink } from "@/lib/calendar";
 import type { Strings } from "@/lib/i18n";
@@ -30,6 +30,16 @@ type Props = {
   onFinish: () => void;
 };
 
+/** A native date input: the phone's own picker, in the student's language. */
+function DatePicker({ t, label, value, onPick }: { t: Strings; label: string; value?: string; onPick: (date: string) => void }) {
+  return (
+    <label className="btn btn-small date-pick">
+      <Icon name="calendar" /> {label}
+      <input type="date" aria-label={label} defaultValue={value} onChange={(e) => e.target.value && onPick(e.target.value)} />
+    </label>
+  );
+}
+
 export default function Workspace(props: Props) {
   const { a, t, settings } = props;
   const d = a.decode;
@@ -51,12 +61,23 @@ export default function Workspace(props: Props) {
             {due ? `${t.dueOn} ${formatDate(due, t.locale)} · ${t.daysLeft(daysUntil(due))}` : t.noDate}
           </p>
         </div>
-        {ics && (
+        {ics ? (
           <button className="btn btn-small" onClick={() => { openCalendar(ics, `clara-${d.title.slice(0, 30)}`); setCalendarNote(true); }}>
             <Icon name="calendar" /> {t.addToCalendar}
           </button>
+        ) : (
+          <DatePicker t={t} label={t.dateSet} onPick={(date) => props.onUpdate(withDeadlineDate(a, d.deadlines.findIndex((x) => !x.date), date, t.dateItem))} />
         )}
       </header>
+      {!ics && <p className="muted small">{t.calendarNeedsDate}</p>}
+      {d.deadlines.map((x, i) =>
+        x.date && (x.date_computed || x.date_check === "mismatch") ? (
+          <Notice key={i}>
+            {t.dateComputed(`${x.item}: ${formatDate(x.date + "T12:00", t.locale)}`)}{" "}
+            <DatePicker t={t} label={t.dateChange} value={x.date} onPick={(date) => props.onUpdate(withDeadlineDate(a, i, date, x.item))} />
+          </Notice>
+        ) : null,
+      )}
       <div aria-live="polite">{calendarNote && (
         <Notice kind="ok">
           {t.calendarDone}
@@ -266,6 +287,8 @@ function Chat({ a, t, voice, settings, onUpdate, onSettings }: Props) {
       )}
       {adding ? (
         <MaterialInput
+          canvasUrl={settings.canvasFeedUrl}
+          onCanvasUrl={(canvasFeedUrl) => onSettings({ canvasFeedUrl })}
           t={t}
           defaultKind="announcement"
           onCancel={() => setAdding(false)}

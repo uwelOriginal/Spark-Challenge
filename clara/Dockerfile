@@ -12,6 +12,6 @@ RUN npm run build
 ENV NODE_ENV=production
 EXPOSE 3000
 # Keys come from the host's environment settings, never from the image:
-# GROQ_API_KEY, ANTHROPIC_API_KEY, optional CLARA_ACCESS_CODE
+# GROQ_API_KEY, ANTHROPIC_API_KEY, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, optional CLARA_ACCESS_CODE
 # The host may assign its own port (Railway sets PORT); 3000 is the local default.
 CMD ["sh", "-c", "exec npx next start -p ${PORT:-3000}"]

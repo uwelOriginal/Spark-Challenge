@@ -71,7 +71,7 @@ The whole router is one `useState<View>`. No URL routing, no tab state, no neste
 | Calendar tab (event list + per-event Google links) | **One button** in the Work header: "Add to my calendar" (.ics) | The .ics already works with Google, Apple and Outlook. Reminder days and time stay in Settings. |
 | Sources cross-check panel ("n facts backed" per source) | **Cut**. Material is listed under "Your material (n)" with its full text | The verified count stays as one line in the summary. |
 | 5 source methods + kind picker on each | **One drop zone**: the file type picks the route; paste and record are two buttons; kind is a single `<select>` on reviewed text only | 1 decision instead of 2–3. Audio and transcripts are always "Said in class". |
-| Canvas calendar-feed import | **Removed** (`/api/canvas`, demo feed and its parser test deleted) | Needed a URL from deep in Canvas settings; copying the brief into Clara is simpler. Recoverable from git (`b9c9324`). |
+| Canvas calendar-feed import | **Removed** (`/api/canvas`, demo feed and its parser test deleted) | Needed a URL from deep in Canvas settings; copying the brief into Clara is simpler. **Restored 2026-11-04** at the user's request as one more option in the intake, as planned below, plus a field in Settings. |
 | Install-the-app section | **Removed** from Settings | The browser offers it already. The service worker and manifest stay. |
 | Speaker picker (keep only the professor's voice) | **Kept** | Privacy-critical: other voices never reach the model. |
 | Whole-class audio job | **Kept** | Server pipeline unchanged; only the UI moved into the intake component. |

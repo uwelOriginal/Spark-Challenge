@@ -116,7 +116,7 @@ export type Scene = z.infer<typeof SceneSchema>;
 export type Themed = Theme & { key: string };
 
 export type SourceKind = "brief" | "rubric" | "class" | "announcement" | "other";
-export type SourceInput = { id: string; kind: SourceKind; name: string; text: string };
+export type SourceInput = { id: string; kind: SourceKind; name: string; text: string; date?: string };
 
 // After the server checks each quote against the sources.
 export type Checked<T> = T & { verified: boolean };
@@ -127,7 +127,8 @@ export type DecodeResult = Omit<
   "deliverables" | "deadlines" | "format_requirements" | "grading_criteria" | "ambiguities"
 > & {
   deliverables: Checked<Decode["deliverables"][number]>[];
-  deadlines: (Checked<Decode["deadlines"][number]> & { date_check: DateCheck })[];
+  // date_computed: worked out from a relative word. date_set_by_student: chosen by hand, kept across re-reads.
+  deadlines: (Checked<Decode["deadlines"][number]> & { date_check: DateCheck; date_computed?: boolean; date_set_by_student?: boolean })[];
   format_requirements: Checked<Decode["format_requirements"][number]>[];
   grading_criteria: Checked<Decode["grading_criteria"][number]>[];
   ambiguities: Checked<Decode["ambiguities"][number]>[];

@@ -3,10 +3,13 @@ import type { MetadataRoute } from "next";
 // Installable on phones (PWA): opens full screen from the home screen.
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    id: "/",
     name: "Clara",
     short_name: "Clara",
     description: "Instrucciones claras. Sin adivinar.",
     start_url: "/",
+    scope: "/",
+    prefer_related_applications: false,
     display: "standalone",
     background_color: "#12151c",
     theme_color: "#12151c",

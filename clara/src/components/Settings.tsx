@@ -1,23 +1,93 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { calendarAll } from "@/lib/calendar";
+import { disableNotifications, enableNotifications, notifyState, syncNotifications, testNotification, type NotifyState } from "@/lib/notify";
 import { defaultDialect, DIALECTS } from "@/lib/dialects";
 import type { Strings } from "@/lib/i18n";
 import type { Lang } from "@/lib/schemas";
 import { guessPack, PACK_IDS, PACKS, VOICE_RATES, type Depth, type Motion, type PackId } from "@/lib/personal";
-import { DEFAULT_SETTINGS, type Accent, type Font, type Layout, type Settings, type TextSize, type Theme } from "@/lib/store";
+import { DEFAULT_SETTINGS, type Assignment, type Accent, type Font, type Layout, type Settings, type TextSize, type Theme } from "@/lib/store";
 import { Board } from "./studio/Scene";
-import { Choice, ListenButton } from "./ui";
+import { Choice, Icon, ListenButton, Notice, openCalendar } from "./ui";
 
 // Every preference applies at once (ClaraApp mirrors them onto <html data-*>) and stays on the device.
 
 const RATES = VOICE_RATES;
 type Rate = keyof typeof RATES;
 
-export default function SettingsScreen({ t, settings, onSettings, onWipe }: { t: Strings; settings: Settings; onSettings: (p: Partial<Settings>) => void; onWipe: () => void }) {
+/** Turn push reminders on or off and send a real one to see how it looks. */
+function Notifications({ t, assignments, settings, onSettings }: { t: Strings; assignments: Assignment[]; settings: Settings; onSettings: (p: Partial<Settings>) => void }) {
+  const [state, setState] = useState<NotifyState | null>(null);
+  const [count, setCount] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<{ kind: "ok" | "warn"; text: string } | null>(null);
+
+  useEffect(() => {
+    void notifyState(settings.notifications).then(setState).catch(() => setState("unsupported"));
+    if (settings.notifications) void syncNotifications(assignments, settings, t).then(setCount).catch(() => {});
+  }, [settings.notifications, settings.reminderDays, settings.reminderTime, assignments]);
+
+  async function on() {
+    setBusy(true);
+    setNote(null);
+    try {
+      if (await enableNotifications()) {
+        setCount(await syncNotifications(assignments, settings, t));
+        onSettings({ notifications: true });
+      } else {
+        setState(await notifyState(false));
+      }
+    } catch {
+      setNote({ kind: "warn", text: t.notifyFailed });
+    }
+    setBusy(false);
+  }
+
+  async function off() {
+    setBusy(true);
+    setNote(null);
+    await disableNotifications().catch(() => {});
+    onSettings({ notifications: false });
+    setBusy(false);
+  }
+
+  async function test() {
+    setBusy(true);
+    setNote({ kind: "ok", text: t.notifyTestHelp });
+    const sent = await testNotification();
+    setNote(sent ? { kind: "ok", text: t.notifyTestSent } : { kind: "warn", text: t.notifyFailed });
+    setBusy(false);
+  }
+
+  if (!state) return null;
+  const blocked: Partial<Record<NotifyState, string>> = { unsupported: t.notifyUnsupported, "needs-install": t.notifyNeedsInstall, denied: t.notifyDenied, "server-off": t.notifyServerOff };
+  return (
+    <div className="field">
+      <h3 className="h3">{t.notifyTitle}</h3>
+      {blocked[state] ? (
+        <Notice kind="warn">{blocked[state]}</Notice>
+      ) : state === "on" ? (
+        <>
+          <p className="small">{t.notifyActive(count)}</p>
+          <div className="row">
+            <button className="btn" disabled={busy} onClick={() => void test()}>{t.notifyTest}</button>
+            <button className="btn btn-quiet" disabled={busy} onClick={() => void off()}>{t.notifyOff}</button>
+          </div>
+        </>
+      ) : (
+        <button className="btn btn-primary" disabled={busy} onClick={() => void on()}>{t.notifyOn}</button>
+      )}
+      <div aria-live="polite">{note && <Notice kind={note.kind}>{note.text}</Notice>}</div>
+    </div>
+  );
+}
+
+export default function SettingsScreen({ t, assignments, settings, onSettings, onWipe }: { t: Strings; assignments: Assignment[]; settings: Settings; onSettings: (p: Partial<Settings>) => void; onWipe: () => void }) {
   const [confirm, setConfirm] = useState(false);
   const opts = <K extends string>(labels: Record<K, string>) => (Object.keys(labels) as K[]).map((value) => ({ value, label: labels[value] }));
   const rate = (Object.keys(RATES) as Rate[]).reduce((best, r) => (Math.abs(RATES[r] - settings.voiceRate) < Math.abs(RATES[best] - settings.voiceRate) ? r : best), "normal");
+  const allDates = calendarAll(assignments, settings, t);
   const toggleDay = (d: number) =>
     onSettings({ reminderDays: settings.reminderDays.includes(d) ? settings.reminderDays.filter((x) => x !== d) : [...settings.reminderDays, d].sort((a, b) => b - a) });
 
@@ -124,6 +194,26 @@ export default function SettingsScreen({ t, settings, onSettings, onWipe }: { t:
         <div className="field">
           <label htmlFor="rtime">{t.atTime}</label>
           <input id="rtime" type="time" value={settings.reminderTime} onChange={(e) => onSettings({ reminderTime: e.target.value || "09:00" })} />
+        </div>
+        <Notifications t={t} assignments={assignments} settings={settings} onSettings={onSettings} />
+      </section>
+
+      <section className="panel settings" aria-labelledby="connect-h">
+        <h2 id="connect-h" className="h2">{t.connectTitle}</h2>
+        <div className="field">
+          <h3 className="h3">{t.calendarAllTitle}</h3>
+          <p className="muted small">{t.calendarAllHelp}</p>
+          {allDates ? (
+            <button className="btn" onClick={() => openCalendar(allDates, "clara")}><Icon name="calendar" /> {t.calendarAllButton}</button>
+          ) : (
+            <p className="muted small">{t.calendarAllEmpty}</p>
+          )}
+        </div>
+        <div className="field">
+          <h3 className="h3">{t.canvasTitle}</h3>
+          <label htmlFor="feed">{t.canvasUrlLabel}</label>
+          <input id="feed" type="url" inputMode="url" value={settings.canvasFeedUrl} placeholder="https://…/feeds/calendars/user_….ics" aria-describedby="feed-help" onChange={(e) => onSettings({ canvasFeedUrl: e.target.value.trim() })} />
+          <p id="feed-help" className="muted small">{t.canvasUrlHelp}</p>
         </div>
       </section>
 

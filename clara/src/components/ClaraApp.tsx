@@ -6,6 +6,7 @@ import { strings, type Strings } from "@/lib/i18n";
 import { useClaraStore, type Settings } from "@/lib/store";
 import { Home, Upload } from "./Home";
 import SettingsScreen from "./Settings";
+import { disableNotifications, syncNotifications } from "@/lib/notify";
 import { isActive, packFor } from "@/lib/personal";
 import { Decor } from "./studio/Decor";
 import { InstallButton } from "./InstallButton";
@@ -51,6 +52,27 @@ export default function ClaraApp() {
     if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
   }, []);
 
+  // Tapping a reminder opens Clara on that assignment (/?open=<id>, from the service worker).
+  useEffect(() => {
+    if (!store.ready) return;
+    const url = new URL(window.location.href);
+    const open = url.searchParams.get("open");
+    if (!open) return;
+    url.searchParams.delete("open");
+    window.history.replaceState(null, "", url);
+    setView({ name: "work", id: open });
+  }, [store.ready]);
+
+  // Reminders follow the assignments: new dates, finished work and changed times all reschedule.
+  useEffect(() => {
+    if (!store.ready || access.state !== "open" || !("serviceWorker" in navigator)) return;
+    const wait = setTimeout(() => {
+      if (settings.notifications) void syncNotifications(store.assignments, settings, t).catch(() => {});
+      else void disableNotifications().catch(() => {}); // also covers "delete all my data"
+    }, 800);
+    return () => clearTimeout(wait);
+  }, [store.ready, access.state, store.assignments, settings.notifications, settings.reminderDays, settings.reminderTime, settings.lang]);
+
   // On every screen change, move focus to the new heading so screen readers announce it.
   useEffect(() => {
     main.current?.querySelector<HTMLElement>("h1")?.focus({ preventScroll: true });
@@ -62,9 +84,9 @@ export default function ClaraApp() {
 
   let body: React.ReactNode = null;
   if (!store.ready) body = null;
-  else if (view.name === "settings") body = <SettingsScreen t={t} settings={settings} onSettings={store.setSettings} onWipe={() => { store.wipe(); setView({ name: "home" }); }} />;
+  else if (view.name === "settings") body = <SettingsScreen t={t} assignments={store.assignments} settings={settings} onSettings={store.setSettings} onWipe={() => { store.wipe(); setView({ name: "home" }); }} />;
   else if (view.name === "upload" || (view.name === "home" && store.assignments.length === 0))
-    body = <Upload t={t} voice={voice} first={store.assignments.length === 0} onCreated={(a) => { store.upsert(a); setView({ name: "work", id: a.id }); }} />;
+    body = <Upload t={t} voice={voice} settings={settings} onSettings={store.setSettings} first={store.assignments.length === 0} onCreated={(a) => { store.upsert(a); setView({ name: "work", id: a.id }); }} />;
   else if (view.name === "home" || !current) body = <Home t={t} assignments={store.assignments} onOpen={(id) => setView({ name: "work", id })} onNew={() => setView({ name: "upload" })} />;
   else if (view.name === "work") body = <Workspace a={current} t={t} settings={settings} voice={voice} onUpdate={store.upsert} onSettings={store.setSettings} onOpenSettings={() => setView({ name: "settings" })} onTeacher={() => go("teacher")} onFinish={() => go("finish")} />;
   else if (view.name === "teacher")

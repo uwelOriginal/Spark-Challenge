@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { fileRoute, type NewSource } from "@/lib/actions";
+import { fileRoute, localDay, type NewSource } from "@/lib/actions";
 import { api, type AudioJobStatus } from "@/lib/api";
+import type { FeedItem } from "@/lib/ics";
 import type { Strings } from "@/lib/i18n";
 import type { SourceKind } from "@/lib/schemas";
 import { mmss, parseTranscriptFile, speakerStats, transcriptText, type Segment } from "@/lib/transcript";
@@ -15,6 +16,7 @@ import { downloadFile, errorText, Icon, Notice } from "./ui";
 //   .vtt / .srt / .txt → parse; several speakers → keep voices → add, otherwise review → add
 //   audio (short)      → /api/transcribe → keep voices → add
 //   audio (long)       → /api/audio-jobs → passages about coursework → add
+//   Canvas             → /api/canvas → pick an assignment → review text → add
 
 const KINDS: SourceKind[] = ["brief", "rubric", "class", "announcement", "other"];
 const LONG_AUDIO_BYTES = 20 * 1024 * 1024; // Groq free tier takes 25 MB per file; keep a margin
@@ -25,17 +27,21 @@ type Stage =
   | { name: "busy"; note: string }
   | { name: "review"; text: string; fileName: string; method: NewSource["method"] }
   | { name: "record" }
+  | { name: "canvas" }
   | { name: "speakers"; segments: Segment[]; fileName: string; method: "audio" | "transcript"; estimated: boolean }
   | { name: "long"; id: string; fileName: string };
 
-export default function MaterialInput({ t, defaultKind, onAdd, onCancel }: { t: Strings; defaultKind: SourceKind; onAdd: (s: NewSource) => void; onCancel?: () => void }) {
+export default function MaterialInput({ t, canvasUrl, onCanvasUrl, defaultKind, onAdd, onCancel }: { t: Strings; canvasUrl: string; onCanvasUrl: (url: string) => void; defaultKind: SourceKind; onAdd: (s: NewSource) => void; onCancel?: () => void }) {
   const [stage, setStage] = useState<Stage>({ name: "idle" });
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const lang = t.locale.startsWith("es") ? "es" : "en";
   const reset = () => setStage({ name: "idle" });
+  // The day of a recording or transcript file: "mañana" in it counts from then, not from the upload.
+  const saidOn = useRef<string | undefined>(undefined);
   const add = (s: NewSource) => {
-    onAdd(s);
+    onAdd(saidOn.current ? { ...s, saidOn: saidOn.current } : s);
+    saidOn.current = undefined;
     reset();
   };
 
@@ -43,6 +49,8 @@ export default function MaterialInput({ t, defaultKind, onAdd, onCancel }: { t: 
     if (!f) return;
     setError(null);
     const route = fileRoute(f);
+    const fileDay = localDay(new Date(f.lastModified));
+    saidOn.current = (route === "audio" || route === "transcript") && fileDay < localDay(new Date()) ? fileDay : undefined;
     try {
       if (route === "document") {
         setStage({ name: "busy", note: t.readingFile });
@@ -90,6 +98,8 @@ export default function MaterialInput({ t, defaultKind, onAdd, onCancel }: { t: 
   if (stage.name === "review") return <Review t={t} stage={stage} defaultKind={defaultKind} onAdd={add} onCancel={reset} />;
   if (stage.name === "speakers") return <SpeakerPicker t={t} {...stage} onAdd={add} onCancel={reset} />;
   if (stage.name === "long") return <LongClassJob t={t} id={stage.id} fileName={stage.fileName} onAdd={add} onCancel={reset} />;
+  if (stage.name === "canvas")
+    return <CanvasPicker t={t} url={canvasUrl} onUrl={onCanvasUrl} onCancel={reset} onPick={(text, fileName) => setStage({ name: "review", text, fileName, method: "canvas" })} />;
   if (stage.name === "record") return <Recorder t={t} onDone={(blob, name) => void sendAudio(blob, name)} onCancel={reset} />;
 
   const busy = stage.name === "busy";
@@ -130,6 +140,9 @@ export default function MaterialInput({ t, defaultKind, onAdd, onCancel }: { t: 
         <button className="btn" disabled={busy} onClick={() => setStage({ name: "record" })}>
           <Icon name="mic" /> {t.recordAudio}
         </button>
+        <button className="btn" disabled={busy} onClick={() => setStage({ name: "canvas" })}>
+          <Icon name="calendar" /> {t.canvasFrom}
+        </button>
         {onCancel && <button className="btn btn-quiet" onClick={onCancel}>{t.cancel}</button>}
       </div>
       {status}
@@ -160,6 +173,63 @@ function Review({ t, stage, defaultKind, onAdd, onCancel }: { t: Strings; stage:
         </button>
         <button className="btn btn-quiet" onClick={onCancel}>{t.cancel}</button>
       </div>
+    </div>
+  );
+}
+
+/** Assignments from the Canvas calendar feed. The student picks one and checks its text like any other material. */
+function CanvasPicker({ t, url, onUrl, onPick, onCancel }: { t: Strings; url: string; onUrl: (u: string) => void; onPick: (text: string, name: string) => void; onCancel: () => void }) {
+  const [value, setValue] = useState(url);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [items, setItems] = useState<FeedItem[] | null>(null);
+
+  async function load(u: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await api.canvas(u);
+      setItems(r.items);
+      if (u !== "demo") onUrl(u);
+    } catch (e) {
+      setError(errorText(t, e));
+    }
+    setBusy(false);
+  }
+
+  const when = (it: FeedItem) => new Date(it.start.length === 10 ? `${it.start}T12:00` : it.start).toLocaleString(t.locale, { dateStyle: "full", ...(it.start.length === 10 ? {} : { timeStyle: "short" as const }) });
+  return (
+    <div className="intake">
+      <div className="field">
+        <label htmlFor="canvas-url">{t.canvasUrlLabel}</label>
+        <input id="canvas-url" type="url" inputMode="url" value={value} placeholder="https://…/feeds/calendars/user_….ics" aria-describedby="canvas-help" onChange={(e) => setValue(e.target.value.trim())} />
+        <p id="canvas-help" className="muted small">{t.canvasUrlHelp}</p>
+      </div>
+      <div className="row">
+        <button className="btn btn-primary" disabled={!value || busy} onClick={() => void load(value)}>{t.canvasLoad}</button>
+        <button className="btn" disabled={busy} onClick={() => void load("demo")}>{t.canvasDemo}</button>
+        <button className="btn btn-quiet" onClick={onCancel}>{t.cancel}</button>
+      </div>
+      <div aria-live="polite">
+        {busy && <Notice>{t.canvasLoading}</Notice>}
+        {error && <Notice kind="warn">{error}</Notice>}
+      </div>
+      {items?.length === 0 && <p className="muted">{t.canvasEmpty}</p>}
+      {!!items?.length && (
+        <>
+          <h3 className="h3">{t.canvasPick}</h3>
+          <ul className="rows">
+            {items.map((it) => (
+              <li key={it.uid}>
+                {/* The date lives in the calendar entry, not always in its description, so it goes into the text. */}
+                <button className="row-card" onClick={() => onPick(`${it.title}\n${t.canvasDue}: ${when(it)}\n\n${it.description}`.trim(), `Canvas · ${it.title}`.slice(0, 80))}>
+                  <span className="row-main"><span className="row-title">{it.title}</span><span className="muted small">{when(it)}</span></span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }

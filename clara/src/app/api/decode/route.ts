@@ -36,12 +36,12 @@ export async function POST(req: Request) {
       user: `Output language: ${outputLanguage(body.lang, body.dialect)}. Today's date: ${today}.\n\n${sourcesBlock(sources, fence)}`,
       accept: (d) => {
         if (d.not_an_assignment) return null;
-        const { verified, total } = checkDecode(sources, d).quote_check;
+        const { verified, total } = checkDecode(sources, d, today).quote_check;
         if (total === 0) return "no_quotes";
         return verified / total >= MIN_VERIFIED ? null : `quotes_${verified}/${total}`;
       },
     });
-    return json({ ...checkDecode(sources, data), _route: meta });
+    return json({ ...checkDecode(sources, data, today), _route: meta });
   } catch (e) {
     return errorResponse(e);
   }

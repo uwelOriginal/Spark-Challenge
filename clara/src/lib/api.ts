@@ -2,6 +2,7 @@
 
 import type { Profile } from "./personal";
 import type { ChangesResult, ChatResult, DecodeResult, Lang, SourceInput, Theme } from "./schemas";
+import type { FeedItem } from "./ics";
 import type { Segment } from "./transcript";
 
 // Browser-side calls to Clara's API routes. Errors become ApiError(code) so the UI can show
@@ -58,6 +59,7 @@ export const api = {
   changes: (before: string, after: string, v: Voice) => call<ChangesResult>("/api/changes", { before, after, ...v }),
   chat: (sources: SourceInput[], summary: string, history: { role: string; text: string }[], message: string, v: Voice, profile: Profile) =>
     call<ChatResult>("/api/chat", { sources, summary, history, message, profile, ...v }),
+  canvas: (url: string) => call<{ items: FeedItem[] }>("/api/canvas", { url }),
   theme: (body: ThemeRequest, v: Voice) => call<Theme>("/api/theme", { ...body, ...v }),
   extract: (file: File) => {
     const f = new FormData();

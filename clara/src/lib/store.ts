@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { defaultDialect, validDialect } from "./dialects";
+import { defaultDialect, validDialect } from "./dialects.ts";
 import type { Depth, Motion, PackId } from "./personal";
+import { resolveDeadlineDate } from "./verify.ts";
 import type { ChangesResult, ChatResult, DecodeResult, Lang, SourceKind, Themed } from "./schemas";
 
 // Local-first storage: every assignment, chat and setting lives on the student's device
@@ -13,8 +14,9 @@ export type Source = {
   kind: SourceKind;
   name: string;
   text: string;
-  method: "paste" | "pdf" | "image" | "audio" | "transcript" | "example";
+  method: "paste" | "pdf" | "image" | "audio" | "transcript" | "example" | "canvas";
   addedAt: string;
+  saidOn?: string; // YYYY-MM-DD: the day of the recording or file, when it is older than the upload
 };
 
 /** One line of the assignment's conversation. Clara's "what changed" notes live here too. */
@@ -73,6 +75,8 @@ export type Settings = {
   // Calendar reminders
   reminderDays: number[];
   reminderTime: string; // HH:MM
+  notifications: boolean; // the student turned on push reminders on this device
+  canvasFeedUrl: string; // Canvas calendar feed; stays on this device, read only when asked
 };
 
 type State = { assignments: Assignment[]; settings: Settings };
@@ -100,6 +104,8 @@ export const DEFAULT_SETTINGS: Settings = {
   decor: true,
   reminderDays: [3, 1],
   reminderTime: "09:00",
+  notifications: false,
+  canvasFeedUrl: "",
 };
 
 /** v2 kept done steps as indexes, a separate changes log and undecoded drafts. */
@@ -132,7 +138,7 @@ function load(): State {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const s = JSON.parse(raw) as State;
-      return { assignments: s.assignments ?? [], settings: withDefaults(s.settings) };
+      return { assignments: (s.assignments ?? []).map(withRelativeDates), settings: withDefaults(s.settings) };
     }
     const old = localStorage.getItem(OLD_KEY);
     if (old) return migrate(JSON.parse(old));
@@ -140,6 +146,14 @@ function load(): State {
     /* storage blocked or corrupted: start empty */
   }
   return { assignments: [], settings: DEFAULT_SETTINGS };
+}
+
+/** Assignments read before relative dates were understood: work the date out from when they were created. */
+function withRelativeDates(a: Assignment): Assignment {
+  const created = new Date(a.createdAt);
+  const day = `${created.getFullYear()}-${String(created.getMonth() + 1).padStart(2, "0")}-${String(created.getDate()).padStart(2, "0")}`;
+  const deadlines = a.decode.deadlines.map((x) => (x.date ? x : resolveDeadlineDate(x, a.sources, day)));
+  return { ...a, decode: { ...a.decode, deadlines } };
 }
 
 function save(s: State) {

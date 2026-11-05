@@ -36,19 +36,19 @@ export function fence(text: string): string {
 }
 
 /** Validate a list of sources from a request body. Returns null if invalid. */
-export function readSources(raw: unknown): { id: string; kind: SourceKindName; name: string; text: string }[] | null {
+export function readSources(raw: unknown): { id: string; kind: SourceKindName; name: string; text: string; date?: string }[] | null {
   if (!Array.isArray(raw) || raw.length === 0 || raw.length > 8) return null;
   const kinds = ["brief", "rubric", "class", "announcement", "other"] as const;
   const out = [];
   let total = 0;
   for (const s of raw) {
     if (!s || typeof s !== "object") return null;
-    const { id, kind, name, text } = s as Record<string, unknown>;
+    const { id, kind, name, text, date } = s as Record<string, unknown>;
     if (typeof id !== "string" || !/^S\d{1,2}$/.test(id)) return null;
     if (typeof text !== "string" || text.trim().length === 0) return null;
     const k = kinds.includes(kind as SourceKindName) ? (kind as SourceKindName) : "other";
     total += text.length;
-    out.push({ id, kind: k, name: typeof name === "string" ? name.slice(0, 80) : id, text: text.trim() });
+    out.push({ id, kind: k, name: typeof name === "string" ? name.slice(0, 80) : id, text: text.trim(), ...(typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date) ? { date } : {}) });
   }
   if (total < LIMITS.minChars || total > LIMITS.maxChars) return null;
   return out;

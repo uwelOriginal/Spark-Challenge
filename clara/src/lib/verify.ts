@@ -8,6 +8,7 @@ import type {
   DecodeResult,
   SourceInput,
 } from "./schemas";
+import { resolveRelative } from "./dates.ts";
 
 // Quote verification: the model must back each claim with a verbatim excerpt.
 // We check it in code, so the student sees which claims are traceable to their sources.
@@ -67,14 +68,28 @@ export function checkDate(when: string, date: string | null): DateCheck {
   return named[1] === weekday ? "ok" : "mismatch";
 }
 
-export function checkDecode(sources: SourceInput[], d: Decode): DecodeResult {
+/** Dates from relative words are computed here, from the day the source was said or written. */
+export function resolveDeadlineDate<T extends { when: string; date: string | null; quote: string | null; source_id: string | null }>(x: T, sources: SourceInput[], today: string): T & { date_computed?: boolean } {
+  const ref = sources.find((s) => s.id === x.source_id)?.date ?? today;
+  const fromWhen = resolveRelative(x.when, ref);
+  if (fromWhen) return { ...x, date: fromWhen, date_computed: true };
+  const fromQuote = resolveRelative(x.quote, ref);
+  // A date with no number behind it can only have been worked out, so the student is asked to confirm it.
+  if (!fromQuote) return x.date && !/\d/.test(`${x.when} ${x.quote}`) ? { ...x, date_computed: true } : x;
+  if (!x.date || x.date === fromQuote) return { ...x, date: fromQuote, date_computed: true };
+  // The model chose another day. With no number in sight it can only have got the arithmetic wrong;
+  // with one ("mañana les digo, es para el 13") the model read an actual date, so it stands.
+  return /\d/.test(`${x.when} ${x.quote}`) ? x : { ...x, date: fromQuote, date_computed: true };
+}
+
+export function checkDecode(sources: SourceInput[], d: Decode, today = new Date().toISOString().slice(0, 10)): DecodeResult {
   const mark = <T extends { quote: string | null; source_id: string | null }>(items: T[]) =>
     items.map((it) => ({ ...it, verified: it.quote === null ? true : inSource(sources, it.source_id, it.quote) }));
 
   const result: DecodeResult = {
     ...d,
     deliverables: mark(d.deliverables),
-    deadlines: mark(d.deadlines).map((x) => ({ ...x, date_check: checkDate(x.when, x.date) })),
+    deadlines: mark(d.deadlines).map((x) => resolveDeadlineDate(x, sources, today)).map((x) => ({ ...x, date_check: checkDate(x.when, x.date) })),
     format_requirements: mark(d.format_requirements),
     grading_criteria: mark(d.grading_criteria),
     ambiguities: mark(d.ambiguities),
