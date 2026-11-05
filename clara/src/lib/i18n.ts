@@ -203,6 +203,9 @@ const es = {
   about: "Prototipo para el North American AI Challenge 2026, con la retroalimentación de Surfeando la Neurodiversidad.",
 
   // Access code + errors
+  accessCodeTitle: "Esta demo necesita un código",
+  accessCodeHelp: "Escribe el código que te compartió el equipo. Solo te lo pedimos una vez en este dispositivo.",
+  accessCodeWrong: "Ese código no es correcto. Revísalo e inténtalo otra vez.",
   accessCodeLabel: "Código de acceso de la demo",
   accessCodeSave: "Continuar",
   // Personalization and Studio (docs/15)
@@ -450,6 +453,9 @@ const en: typeof es = {
   wipe: "Delete all my data",
   wipeConfirm: "Yes, delete everything",
   about: "Prototype for the North American AI Challenge 2026, with feedback from Surfeando la Neurodiversidad.",
+  accessCodeTitle: "This demo needs a code",
+  accessCodeHelp: "Enter the code the team shared with you. We only ask once on this device.",
+  accessCodeWrong: "That code isn't correct. Check it and try again.",
   accessCodeLabel: "Demo access code",
   accessCodeSave: "Continue",
   // Personalization and Studio (docs/15)

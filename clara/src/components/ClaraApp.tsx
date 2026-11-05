@@ -41,6 +41,7 @@ export default function ClaraApp() {
   const voice = { lang: settings.lang, dialect: settings.dialect };
   const [view, setView] = useState<View>({ name: "home" });
   const main = useRef<HTMLElement>(null);
+  const access = useAccess();
 
   useEffect(() => {
     if (store.ready) applyDisplay(settings);
@@ -54,7 +55,7 @@ export default function ClaraApp() {
   useEffect(() => {
     main.current?.querySelector<HTMLElement>("h1")?.focus({ preventScroll: true });
     window.scrollTo({ top: 0 });
-  }, [view.name, view.name !== "home" && "id" in view ? view.id : null]);
+  }, [view.name, view.name !== "home" && "id" in view ? view.id : null, access.state]);
 
   const current = "id" in view ? store.assignments.find((a) => a.id === view.id) : undefined;
   const go = (name: "work" | "teacher" | "finish") => current && setView({ name, id: current.id });
@@ -81,50 +82,74 @@ export default function ClaraApp() {
           <Mark size={26} />
           <span className="wordmark">Clara</span>
         </button>
-        <nav className="topnav" aria-label="Clara">
-          <InstallButton t={t} />
-          <button className="btn btn-quiet" aria-current={onHome ? "page" : undefined} onClick={() => setView({ name: "home" })}>
-            <Icon name="home" /> <span className="hide-narrow">{t.home}</span>
-          </button>
-          <button className="btn btn-quiet" aria-current={view.name === "settings" ? "page" : undefined} onClick={() => setView({ name: "settings" })}>
-            <Icon name="settings" /> <span className="hide-narrow">{t.settings}</span>
-          </button>
-        </nav>
+        {access.state === "open" && (
+          <nav className="topnav" aria-label="Clara">
+            <InstallButton t={t} />
+            <button className="btn btn-quiet" aria-current={onHome ? "page" : undefined} onClick={() => setView({ name: "home" })}>
+              <Icon name="home" /> <span className="hide-narrow">{t.home}</span>
+            </button>
+            <button className="btn btn-quiet" aria-current={view.name === "settings" ? "page" : undefined} onClick={() => setView({ name: "settings" })}>
+              <Icon name="settings" /> <span className="hide-narrow">{t.settings}</span>
+            </button>
+          </nav>
+        )}
       </header>
       <main id="main" ref={main} className="main">
-        <AccessCode t={t} />
-        {body}
+        {access.state === "open" && body}
+        {access.state === "locked" && <AccessScreen t={t} access={access} />}
       </main>
     </div>
   );
 }
 
-/** Shown only when the server asks for a demo access code (public deployments). */
-function AccessCode({ t }: { t: Strings }) {
-  const [needed, setNeeded] = useState(false);
-  const [code, setCode] = useState("");
+/** Asks the server whether this device may use the demo. The server's guard stays the real protection. */
+async function codeAccepted(code: string): Promise<boolean> {
+  try {
+    const res = await fetch("/api/health", { headers: code ? { "x-clara-code": code } : {}, cache: "no-store" });
+    return (await res.json()).authorized !== false;
+  } catch {
+    return true; // offline: saved work stays readable, and every AI call still needs the code
+  }
+}
+
+function useAccess() {
+  const [state, setState] = useState<"checking" | "locked" | "open">("checking");
+  const [wrong, setWrong] = useState(false);
+
+  async function tryCode(code: string) {
+    const accepted = await codeAccepted(code);
+    if (accepted) setAccessCode(code);
+    setWrong(!accepted && Boolean(code));
+    setState(accepted ? "open" : "locked");
+  }
+
   useEffect(() => {
     // A QR code or shared link can carry the code (?code=...), so opening it is the only step.
     const url = new URL(window.location.href);
     const shared = url.searchParams.get("code");
     if (shared) {
-      setAccessCode(shared);
       url.searchParams.delete("code");
       window.history.replaceState(null, "", url);
     }
-    fetch("/api/health")
-      .then((r) => r.json())
-      .then((d) => setNeeded(Boolean(d?.accessCode) && !getAccessCode()))
-      .catch(() => {});
+    void tryCode(shared ?? getAccessCode());
   }, []);
-  if (!needed) return null;
+
+  return { state, wrong, tryCode };
+}
+
+/** Replaces the whole app until the code is accepted, on deployments that set one. */
+function AccessScreen({ t, access }: { t: Strings; access: ReturnType<typeof useAccess> }) {
+  const [code, setCode] = useState("");
   return (
-    <form className="panel access" onSubmit={(e) => { e.preventDefault(); setAccessCode(code); setNeeded(false); }}>
+    <form className="panel access" onSubmit={(e) => { e.preventDefault(); void access.tryCode(code.trim()); }}>
+      <h1 className="h1" tabIndex={-1}>{t.accessCodeTitle}</h1>
+      <p className="muted">{t.accessCodeHelp}</p>
       <label htmlFor="code">{t.accessCodeLabel}</label>
       <div className="row">
-        <input id="code" type="password" value={code} onChange={(e) => setCode(e.target.value)} />
-        <button className="btn btn-primary" disabled={!code}>{t.accessCodeSave}</button>
+        <input id="code" type="password" autoComplete="off" autoCapitalize="none" autoCorrect="off" aria-describedby={access.wrong ? "code-wrong" : undefined} value={code} onChange={(e) => setCode(e.target.value)} />
+        <button className="btn btn-primary" disabled={!code.trim()}>{t.accessCodeSave}</button>
       </div>
+      <div aria-live="polite">{access.wrong && <p id="code-wrong" className="notice notice-warn">{t.accessCodeWrong}</p>}</div>
     </form>
   );
 }
