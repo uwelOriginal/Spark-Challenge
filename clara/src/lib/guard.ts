@@ -32,7 +32,7 @@ export function guard(req: Request, opts: { rateLimit?: boolean } = {}): Respons
 
 /** Keep document text from closing our tags early. */
 export function fence(text: string): string {
-  return text.replace(/<\/?(document|before|after|source)\b[^>]*>/gi, (m) => m.replace("<", "< "));
+  return text.replace(/<\/?(document|before|after|source|assignment|interest|student_profile|conversation|decoded_summary)\b[^>]*>/gi, (m) => m.replace("<", "< "));
 }
 
 /** Validate a list of sources from a request body. Returns null if invalid. */

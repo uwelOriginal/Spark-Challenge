@@ -1,3 +1,5 @@
 .env
 # Organizer Presenter Packet (handbook, internal links): keep out of the public repo
 raw/wpxeU/
+.playwright-mcp
+.remember

@@ -1,8 +1,8 @@
 "use client";
 
-import type { ChangesResult, ChatResult, DecodeResult, Lang, SourceInput } from "./schemas";
+import type { Profile } from "./personal";
+import type { ChangesResult, ChatResult, DecodeResult, Lang, SourceInput, Theme } from "./schemas";
 import type { Segment } from "./transcript";
-import type { FeedItem } from "./ics";
 
 // Browser-side calls to Clara's API routes. Errors become ApiError(code) so the UI can show
 // the matching plain-language message from i18n.
@@ -50,11 +50,15 @@ const today = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
+/** Output language for the AI: the UI language plus its regional variant (see dialects.ts). */
+export type Voice = { lang: Lang; dialect: string };
+
 export const api = {
-  decode: (sources: SourceInput[], lang: Lang) => call<DecodeResult>("/api/decode", { sources, lang, today: today() }),
-  changes: (before: string, after: string, lang: Lang) => call<ChangesResult>("/api/changes", { before, after, lang }),
-  chat: (sources: SourceInput[], summary: string, history: { role: string; text: string }[], message: string, lang: Lang) =>
-    call<ChatResult>("/api/chat", { sources, summary, history, message, lang }),
+  decode: (sources: SourceInput[], v: Voice) => call<DecodeResult>("/api/decode", { sources, ...v, today: today() }),
+  changes: (before: string, after: string, v: Voice) => call<ChangesResult>("/api/changes", { before, after, ...v }),
+  chat: (sources: SourceInput[], summary: string, history: { role: string; text: string }[], message: string, v: Voice, profile: Profile) =>
+    call<ChatResult>("/api/chat", { sources, summary, history, message, profile, ...v }),
+  theme: (body: ThemeRequest, v: Voice) => call<Theme>("/api/theme", { ...body, ...v }),
   extract: (file: File) => {
     const f = new FormData();
     f.append("file", file);
@@ -66,7 +70,6 @@ export const api = {
     f.append("lang", lang);
     return call<{ segments: Segment[]; language: string | null; diarization: "acoustic" | "estimated" | "none" }>("/api/transcribe", f);
   },
-  canvas: (url: string) => call<{ items: FeedItem[] }>("/api/canvas", { url }),
 
   /** Whole-class recordings: upload once (streamed), then poll the background job. */
   startAudioJob: async (file: Blob, name: string, lang: Lang): Promise<{ id: string }> => {
@@ -98,6 +101,21 @@ export const api = {
     if (!res.ok) throw new ApiError(data.error ?? "unavailable");
     return data;
   },
+};
+
+export type ThemeRequest = {
+  assignment: {
+    title: string;
+    summary: string[];
+    steps: { action: string; minutes: number; done_when: string }[];
+    deadlines: { item: string; when: string }[];
+    deliverables: string[];
+    grading: string[];
+    vague: string[];
+  };
+  interest: string;
+  pack: string;
+  depth: "light" | "full";
 };
 
 export type ClassPassage = { time: string; seconds: number; quote: string; topic: string };

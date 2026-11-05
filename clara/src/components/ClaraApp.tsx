@@ -1,117 +1,106 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getAccessCode, setAccessCode } from "@/lib/api";
-import { STRINGS } from "@/lib/i18n";
-import { useClaraStore } from "@/lib/store";
-import AssignmentView, { type Tab } from "./AssignmentView";
-import { AssignmentList, NewAssignment, SettingsScreen, Today } from "./Screens";
+import { strings, type Strings } from "@/lib/i18n";
+import { useClaraStore, type Settings } from "@/lib/store";
+import { Home, Upload } from "./Home";
+import SettingsScreen from "./Settings";
+import { isActive, packFor } from "@/lib/personal";
+import { Decor } from "./studio/Decor";
 import { Icon, Mark } from "./ui";
+import Workspace from "./Workspace";
+import { Finish, Teacher } from "./Wrapup";
 
-type View = { name: "today" | "list" | "new" | "settings" } | { name: "assignment"; id: string; tab: Tab };
+// The whole app is one small state machine:
+//
+//   home ──new──▶ upload ──read──▶ work ◀──back── teacher
+//     ▲                             │  └──────────▶ finish ──delete──▶ home
+//     └──────────── header ─────────┘
+//
+// A first-time student (no assignments) lands on upload instead of an empty home.
 
-/** App shell: a sidebar on wide screens, a bottom bar on phones. All state lives on the device. */
+type View =
+  | { name: "home" }
+  | { name: "upload" }
+  | { name: "settings" }
+  | { name: "work" | "teacher" | "finish"; id: string };
+
+/** Mirror display preferences onto <html> so CSS can theme everything from data attributes. */
+export function applyDisplay(s: Settings) {
+  const el = document.documentElement;
+  el.lang = s.dialect;
+  Object.assign(el.dataset, { theme: s.theme, accent: s.accent, font: s.font, text: s.textSize, control: s.controlSize, spacing: s.spacing, motion: s.motion });
+}
+
 export default function ClaraApp() {
   const store = useClaraStore();
   const { settings } = store;
-  const t = STRINGS[settings.lang];
-  const [view, setView] = useState<View>({ name: "today" });
-  const [code, setCode] = useState("");
+  const t = strings(settings.lang, settings.dialect);
+  const voice = { lang: settings.lang, dialect: settings.dialect };
+  const [view, setView] = useState<View>({ name: "home" });
+  const main = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    document.documentElement.lang = settings.lang;
-  }, [settings.lang]);
+    if (store.ready) applyDisplay(settings);
+  }, [store.ready, settings]);
 
   useEffect(() => {
-    if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
-    }
+    if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
   }, []);
 
-  const open = (id: string, tab: Tab = "summary") => setView({ name: "assignment", id, tab });
-  const tab: Tab = view.name === "assignment" ? view.tab : "summary";
-  const current = view.name === "assignment" ? store.assignments.find((a) => a.id === view.id) : undefined;
-  const navItems = [
-    { id: "today" as const, icon: "today", label: t.nav.today },
-    { id: "list" as const, icon: "list", label: t.nav.list },
-    { id: "new" as const, icon: "plus", label: t.nav.add },
-    { id: "settings" as const, icon: "settings", label: t.nav.settings },
-  ];
-  const active = view.name === "assignment" ? "list" : view.name;
+  // On every screen change, move focus to the new heading so screen readers announce it.
+  useEffect(() => {
+    main.current?.querySelector<HTMLElement>("h1")?.focus({ preventScroll: true });
+    window.scrollTo({ top: 0 });
+  }, [view.name, view.name !== "home" && "id" in view ? view.id : null]);
+
+  const current = "id" in view ? store.assignments.find((a) => a.id === view.id) : undefined;
+  const go = (name: "work" | "teacher" | "finish") => current && setView({ name, id: current.id });
 
   let body: React.ReactNode = null;
   if (!store.ready) body = null;
-  else if (view.name === "today")
-    body = <Today t={t} lang={settings.lang} settings={settings} assignments={store.assignments} onOpen={open} onNew={() => setView({ name: "new" })} onCreate={store.upsert} />;
-  else if (view.name === "list")
-    body = <AssignmentList t={t} lang={settings.lang} assignments={store.assignments} onOpen={open} onNew={() => setView({ name: "new" })} />;
-  else if (view.name === "new")
-    body = <NewAssignment t={t} lang={settings.lang} settings={settings} onCanvasUrl={(u) => store.setSettings({ canvasFeedUrl: u })} onCreate={store.upsert} onOpen={open} />;
-  else if (view.name === "settings")
-    body = <SettingsScreen t={t} settings={settings} onSettings={store.setSettings} onWipe={() => { store.wipe(); setView({ name: "today" }); }} />;
-  else if (current?.decode)
-    body = (
-      <>
-        <button className="back" onClick={() => setView({ name: "list" })}><Icon name="back" /> {t.nav.list}</button>
-        <AssignmentView
-          a={current}
-          settings={settings}
-          t={t}
-          lang={settings.lang}
-          tab={tab}
-          onTab={(tab) => setView({ name: "assignment", id: current.id, tab })}
-          onUpdate={store.upsert}
-          onDelete={(id) => { store.remove(id); setView({ name: "list" }); }}
-          onCanvasUrl={(u) => store.setSettings({ canvasFeedUrl: u })}
-          onStudentName={(n) => store.setSettings({ studentName: n })}
-        />
-      </>
-    );
+  else if (view.name === "settings") body = <SettingsScreen t={t} settings={settings} onSettings={store.setSettings} onWipe={() => { store.wipe(); setView({ name: "home" }); }} />;
+  else if (view.name === "upload" || (view.name === "home" && store.assignments.length === 0))
+    body = <Upload t={t} voice={voice} first={store.assignments.length === 0} onCreated={(a) => { store.upsert(a); setView({ name: "work", id: a.id }); }} />;
+  else if (view.name === "home" || !current) body = <Home t={t} assignments={store.assignments} onOpen={(id) => setView({ name: "work", id })} onNew={() => setView({ name: "upload" })} />;
+  else if (view.name === "work") body = <Workspace a={current} t={t} settings={settings} voice={voice} onUpdate={store.upsert} onSettings={store.setSettings} onOpenSettings={() => setView({ name: "settings" })} onTeacher={() => go("teacher")} onFinish={() => go("finish")} />;
+  else if (view.name === "teacher")
+    body = <Teacher a={current} t={t} settings={settings} onUpdate={store.upsert} onBack={() => go("work")} onStudentName={(studentName) => store.setSettings({ studentName })} />;
+  else body = <Finish a={current} t={t} settings={settings} onUpdate={store.upsert} onBack={() => go("work")} onDelete={() => { store.remove(current.id); setView({ name: "home" }); }} />;
 
+  const onHome = view.name === "home";
+  const decor = store.ready && settings.decor && isActive(settings) ? packFor(settings, current?.themed) : null;
   return (
     <div className="app">
-      <aside className="sidebar">
-        <div className="brand">
-          <Mark />
-          <div>
-            <span className="wordmark">Clara</span>
-            <span className="brand-sub">{t.appTagline}</span>
-          </div>
-        </div>
-        <nav aria-label="Clara">
-          {navItems.map((n) => (
-            <button key={n.id} className="nav-item" aria-current={active === n.id ? "page" : undefined} onClick={() => setView({ name: n.id })}>
-              <Icon name={n.icon} /> {n.label}
-            </button>
-          ))}
-        </nav>
-      </aside>
-
+      {decor && <Decor pack={decor} />}
+      <a className="skip" href="#main">{t.skip}</a>
       <header className="topbar">
-        <Mark size={24} />
-        <span className="wordmark">Clara</span>
+        <button className="brand" onClick={() => setView({ name: "home" })} aria-label={`Clara · ${t.home}`}>
+          <Mark size={26} />
+          <span className="wordmark">Clara</span>
+        </button>
+        <nav className="topnav" aria-label="Clara">
+          <button className="btn btn-quiet" aria-current={onHome ? "page" : undefined} onClick={() => setView({ name: "home" })}>
+            <Icon name="home" /> <span className="hide-narrow">{t.home}</span>
+          </button>
+          <button className="btn btn-quiet" aria-current={view.name === "settings" ? "page" : undefined} onClick={() => setView({ name: "settings" })}>
+            <Icon name="settings" /> <span className="hide-narrow">{t.settings}</span>
+          </button>
+        </nav>
       </header>
-
-      <main className="canvas">
-        <AccessCode t={t} code={code} setCode={setCode} />
+      <main id="main" ref={main} className="main">
+        <AccessCode t={t} />
         {body}
       </main>
-
-      <nav className="bottombar" aria-label="Clara">
-        {navItems.map((n) => (
-          <button key={n.id} className="tabbar-item" aria-current={active === n.id ? "page" : undefined} onClick={() => setView({ name: n.id })}>
-            <Icon name={n.icon} size={22} />
-            <span>{n.label}</span>
-          </button>
-        ))}
-      </nav>
     </div>
   );
 }
 
 /** Shown only when the server asks for a demo access code (public deployments). */
-function AccessCode({ t, code, setCode }: { t: (typeof STRINGS)["es"]; code: string; setCode: (c: string) => void }) {
+function AccessCode({ t }: { t: Strings }) {
   const [needed, setNeeded] = useState(false);
+  const [code, setCode] = useState("");
   useEffect(() => {
     fetch("/api/health")
       .then((r) => r.json())
@@ -120,12 +109,12 @@ function AccessCode({ t, code, setCode }: { t: (typeof STRINGS)["es"]; code: str
   }, []);
   if (!needed) return null;
   return (
-    <div className="panel access">
+    <form className="panel access" onSubmit={(e) => { e.preventDefault(); setAccessCode(code); setNeeded(false); }}>
       <label htmlFor="code">{t.accessCodeLabel}</label>
       <div className="row">
         <input id="code" type="password" value={code} onChange={(e) => setCode(e.target.value)} />
-        <button className="btn btn-primary" disabled={!code} onClick={() => { setAccessCode(code); setNeeded(false); }}>{t.accessCodeSave}</button>
+        <button className="btn btn-primary" disabled={!code}>{t.accessCodeSave}</button>
       </div>
-    </div>
+    </form>
   );
 }

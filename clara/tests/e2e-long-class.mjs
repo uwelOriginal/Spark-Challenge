@@ -16,9 +16,7 @@ const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 
 await page.goto(BASE);
-await page.locator(".bottombar").getByRole("button", { name: "Nueva" }).click();
-await page.getByRole("button", { name: "Audio de clase" }).click();
-await page.locator('input[type="file"][accept*="audio"]').setInputFiles(audio);
+await page.locator('.drop input[type="file"]').setInputFiles(audio); // first visit lands on Upload
 await page.getByText(/Transcribiendo la clase completa|Preparando el audio/).first().waitFor({ timeout: 60_000 });
 log.push(`${secs()}s job started`);
 await page.waitForTimeout(8000);
@@ -29,12 +27,12 @@ log.push(`${secs()}s passages ready: ${await page.getByText(/momentos sobre tare
 await page.screenshot({ path: `${out}/long-2-passages.png`, fullPage: true });
 
 await page.getByRole("button", { name: /^Agregar \d+ momentos/ }).click();
-await page.getByRole("button", { name: "Descifrar con Clara" }).click();
-await page.getByText(/Clara comprobó \d+ de \d+ datos/).waitFor({ timeout: 150_000 });
-log.push(`${secs()}s decoded: ${await page.getByText(/Clara comprobó/).innerText()}`);
+await page.getByRole("button", { name: "Leer con Clara" }).click();
+await page.getByRole("heading", { name: "Qué hacer" }).waitFor({ timeout: 150_000 });
+log.push(`${secs()}s decoded: ${await page.locator(".checklist .check").count()} steps`);
 await page.screenshot({ path: `${out}/long-3-summary.png`, fullPage: true });
-await page.locator(".tabs").getByRole("button", { name: /^Entregar/ }).click();
-const deliver = await page.locator(".tab-panel").innerText();
+await page.getByText("Fechas, entregables y formato").click();
+const deliver = await page.locator('[data-panel="tasks"]').innerText();
 log.push(`exam found: ${/17 de noviembre/i.test(deliver)} · essay date found: ${/12 de noviembre/i.test(deliver)} · 1500 words: ${/1[.,]?500/.test(deliver)}`);
 await page.screenshot({ path: `${out}/long-4-deliver.png`, fullPage: true });
 

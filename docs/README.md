@@ -35,6 +35,7 @@
 | [09_partner_meeting_kit.md](09_partner_meeting_kit.md) | **Thu Oct 29 meeting:** roles, agenda, open discovery questions, demo script, feedback questions, asks, Clara-vs-ChatGPT protocol |
 | [10_voice_input_decision.md](10_voice_input_decision.md) | **Decision:** NotebookLM vs. voice recordings vs. alternatives, facts, the architecture if adopted, and the vendor bake-off rule |
 | [13_cost_and_routing.md](13_cost_and_routing.md) | **Cost:** routing that tries the Groq free tier first, Anthropic only on escalation, ElevenLabs vs. Chatterbox vs. Whisper, cost per demo |
+| [14_simplification.md](14_simplification.md) | **Clara v3 (Nov 4):** one flow (upload → work: tasks + chat → professor or finish), dark by default, display/accessibility settings, regional variants, what was cut and why, architecture diagrams |
 | [12_v2_product_decisions.md](12_v2_product_decisions.md) | **v2 (Oct 27 night):** value over ChatGPT, class audio, history, calendar/Canvas/WhatsApp, notifications, brand, what was verified and what is still open |
 | [11_code_walkthrough.md](11_code_walkthrough.md) | How the code works, file by file, plus likely code-review questions and honest answers |
 | [court/](court/) | Verdicts from the internal adversarial validation (court skill). The full trial is in `../.court/` |

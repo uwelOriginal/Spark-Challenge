@@ -1,7 +1,6 @@
 // Run: npm test   (Node 24 strips TypeScript types natively)
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
 import { checkDate } from "../src/lib/verify.ts";
 import { parseTranscriptFile, speakerStats, transcriptText } from "../src/lib/transcript.ts";
 import { buildIcs, parseIcs } from "../src/lib/ics.ts";
@@ -41,15 +40,6 @@ test("only the kept speakers reach the model, with time marks", () => {
 test("plain text transcript becomes one segment", () => {
   const segs = parseTranscriptFile("El ensayo es individual.");
   assert.equal(segs.length, 1);
-});
-
-test("Canvas demo feed parses three assignments with unescaped descriptions", () => {
-  const items = parseIcs(fs.readFileSync(new URL("../public/samples/canvas-demo.ics", import.meta.url), "utf8"));
-  assert.equal(items.length, 3);
-  assert.ok(items.every((i) => i.isAssignment));
-  assert.match(items[0].description, /Ética, persona y sociedad/);
-  assert.match(items[0].description, /\n/);
-  assert.equal(items[0].start, "2026-11-13T23:59:00");
 });
 
 test("built calendar round-trips through the parser", () => {

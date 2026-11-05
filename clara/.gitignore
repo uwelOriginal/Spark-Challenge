@@ -11,9 +11,12 @@ next-env.d.ts
 
 # generated artifacts
 eval/results/*.json
-demo/*.webm
+demo/
 
 # taste-skill working files (screenshots)
 .taste-skill/inspect/
 .taste-skill/before/
 .taste-skill/after/
+
+# demo video build (brag): frames and intermediates
+brag-output*/

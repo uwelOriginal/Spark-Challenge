@@ -61,6 +61,11 @@ export function strictJsonSchema(schema: z.ZodType): Record<string, unknown> {
       if (other && typeof other.type === "string" && Object.keys(other).length === 1) {
         delete n.anyOf;
         n.type = [other.type, "null"];
+      } else if (other && other.type === "string" && Array.isArray(other.enum) && Object.keys(other).length === 2) {
+        // nullable enum -> {type: ["string", "null"], enum: [..., null]}
+        delete n.anyOf;
+        n.type = ["string", "null"];
+        n.enum = [...other.enum, null];
       }
     }
     if (n.type === "object" && n.properties && typeof n.properties === "object") {

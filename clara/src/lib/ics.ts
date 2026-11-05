@@ -1,8 +1,7 @@
 // Calendar interoperability without OAuth:
 //  - buildIcs(): a .ics file the phone's own calendar imports (Google, Apple, Outlook).
 //    Reminders are separate short events, so every calendar app notifies, even ones that ignore VALARM.
-//  - googleCalendarLink(): one-tap "add to Google Calendar" URL.
-//  - parseIcs(): reads a Canvas calendar feed (server side) to import assignments.
+//  - parseIcs(): reads a .ics back (used by the tests to check what buildIcs writes).
 
 export type CalEvent = { uid: string; title: string; description: string; start: Date; end: Date; allDay: boolean };
 
@@ -49,17 +48,6 @@ export function buildIcs(events: CalEvent[]): string {
   return lines.join("\r\n");
 }
 
-export function googleCalendarLink(e: CalEvent): string {
-  const fmt = (d: Date) => (e.allDay ? icsDate(d) : icsLocal(d));
-  const params = new URLSearchParams({
-    action: "TEMPLATE",
-    text: e.title,
-    details: e.description,
-    dates: `${fmt(e.start)}/${fmt(e.end)}`,
-  });
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
-}
-
 /** Date from YYYY-MM-DD and optional HH:MM in the device's local time. */
 export function localDate(date: string, time: string | null): Date {
   const [y, m, d] = date.split("-").map(Number);
@@ -67,9 +55,9 @@ export function localDate(date: string, time: string | null): Date {
   return new Date(y, m - 1, d, hh || 0, mm || 0);
 }
 
-// ---------- Parsing (Canvas feed) ----------
+// ---------- Parsing ----------
 
-export type FeedItem = { uid: string; title: string; description: string; start: string; url: string | null; isAssignment: boolean };
+export type FeedItem = { uid: string; title: string; description: string; start: string; url: string | null };
 
 function unescapeIcs(s: string): string {
   return s.replace(/\\n/gi, "\n").replace(/\\,/g, ",").replace(/\\;/g, ";").replace(/\\\\/g, "\\");
@@ -105,7 +93,6 @@ export function parseIcs(raw: string): FeedItem[] {
       description,
       start: parseIcsDate(get("DTSTART")),
       url: get("URL") || null,
-      isAssignment: /assignment/i.test(uid),
     });
   }
   return items;

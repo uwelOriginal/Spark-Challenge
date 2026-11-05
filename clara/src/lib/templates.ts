@@ -40,9 +40,9 @@ export function professorMessage(
 
 export function mentorSummary(
   lang: Lang,
-  opts: { decode: DecodeResult; questions: string[]; doneSteps: string[]; note: string },
+  opts: { decode: DecodeResult; questions: string[]; doneSteps: string[]; note?: string },
 ): string {
-  const { decode, questions, doneSteps, note } = opts;
+  const { decode, questions, doneSteps, note = "" } = opts;
   const due = decode.deadlines.map((d) => `- ${d.item}: ${d.when}`).join("\n");
   const qs = questions.map((q) => `- ${q}`).join("\n");
   const done = doneSteps.map((s) => `- ${s}`).join("\n");

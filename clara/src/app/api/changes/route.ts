@@ -1,18 +1,19 @@
-import { CHANGES_SYSTEM, LANGUAGE_NAME } from "@/prompts";
+import { CHANGES_SYSTEM } from "@/prompts";
+import { outputLanguage } from "@/lib/dialects";
 import { errorResponse, fence, guard, json, LIMITS } from "@/lib/guard";
 import { routeStructured } from "@/lib/llm";
-import { ChangesSchema, type Lang } from "@/lib/schemas";
+import { ChangesSchema } from "@/lib/schemas";
 import { checkChanges } from "@/lib/verify";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-// POST { before, after, lang } -> what changed, what to do, what stays the same.
+// POST { before, after, lang, dialect? } -> what changed, what to do, what stays the same.
 export async function POST(req: Request) {
   const blocked = guard(req);
   if (blocked) return blocked;
 
-  let body: { before?: unknown; after?: unknown; lang?: unknown };
+  let body: { before?: unknown; after?: unknown; lang?: unknown; dialect?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -20,7 +21,6 @@ export async function POST(req: Request) {
   }
   const before = typeof body.before === "string" ? body.before.trim() : "";
   const after = typeof body.after === "string" ? body.after.trim() : "";
-  const lang: Lang = body.lang === "en" ? "en" : "es";
   for (const t of [before, after]) {
     if (t.length < LIMITS.minChars) return json({ error: "too_short" }, 400);
     if (t.length > LIMITS.maxChars) return json({ error: "too_long" }, 400);
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
       task: "changes",
       schema: ChangesSchema,
       system: CHANGES_SYSTEM,
-      user: `Output language: ${LANGUAGE_NAME[lang]}.\n\n<before>\n${fence(before)}\n</before>\n\n<after>\n${fence(after)}\n</after>`,
+      user: `Output language: ${outputLanguage(body.lang, body.dialect)}.\n\n<before>\n${fence(before)}\n</before>\n\n<after>\n${fence(after)}\n</after>`,
       accept: (c) => {
         const checked = checkChanges(before, after, c).changes;
         if (checked.length === 0) return null;

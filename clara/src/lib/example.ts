@@ -28,8 +28,3 @@ export function exampleSources(lang: Lang): Source[] {
 export function exampleNewVersion(): string {
   return samples.briefs.find((b) => b.id === "etica_v2")!.text;
 }
-
-export function nextSourceId(sources: Source[]): string {
-  const max = sources.reduce((m, s) => Math.max(m, Number(s.id.slice(1)) || 0), 0);
-  return `S${max + 1}`;
-}
