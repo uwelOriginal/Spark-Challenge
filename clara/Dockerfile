@@ -9,8 +9,9 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
 RUN npm run build
-ENV NODE_ENV=production PORT=3000
+ENV NODE_ENV=production
 EXPOSE 3000
 # Keys come from the host's environment settings, never from the image:
 # GROQ_API_KEY, ANTHROPIC_API_KEY, optional CLARA_ACCESS_CODE
-CMD ["npx", "next", "start", "-p", "3000"]
+# The host may assign its own port (Railway sets PORT); 3000 is the local default.
+CMD ["sh", "-c", "exec npx next start -p ${PORT:-3000}"]

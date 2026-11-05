@@ -1,4 +1,4 @@
-import { buildIcs, localDate, type CalEvent } from "./ics";
+import { buildIcs, googleCalendarLink, localDate, type CalEvent } from "./ics";
 import type { Strings } from "./i18n";
 import { nextStep, type Assignment, type Settings } from "./store";
 
@@ -58,4 +58,10 @@ export function planEvents(a: Assignment, settings: Settings, t: Strings): Plann
 export function calendarFile(a: Assignment, settings: Settings, t: Strings): string | null {
   const events = planEvents(a, settings, t);
   return events.some((e) => e.kind === "due") ? buildIcs(events) : null;
+}
+
+/** Google Calendar link for the first due date (a link carries one event, so no reminders), or null. */
+export function calendarLink(a: Assignment, settings: Settings, t: Strings): string | null {
+  const due = planEvents(a, settings, t).find((e) => e.kind === "due");
+  return due ? googleCalendarLink(due) : null;
 }

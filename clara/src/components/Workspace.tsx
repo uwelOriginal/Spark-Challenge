@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { addMaterial, answer, toggleStep, withQuestion } from "@/lib/actions";
 import type { Voice } from "@/lib/api";
-import { calendarFile } from "@/lib/calendar";
+import { calendarFile, calendarLink } from "@/lib/calendar";
 import type { Strings } from "@/lib/i18n";
 import { isActive, packFor, PACKS } from "@/lib/personal";
 import type { DecodeResult } from "@/lib/schemas";
@@ -12,7 +12,7 @@ import MaterialInput from "./MaterialInput";
 import { PanelMotif } from "./studio/Decor";
 import { SceneView } from "./studio/Scene";
 import { ChangeCard, GroupedSteps, InterestCard, StudioExtras, StudioHero, useTheme } from "./studio/Studio";
-import { daysUntil, downloadFile, errorText, FlowSteps, formatDate, Icon, ListenButton, Notice, Quote } from "./ui";
+import { daysUntil, errorText, FlowSteps, formatDate, Icon, ListenButton, Notice, openCalendar, Quote } from "./ui";
 
 // Step 2: the tasks and the conversation about them, on one screen. Where each panel sits
 // comes from Settings → Workspace (data-layout); on narrow screens one shows at a time.
@@ -37,6 +37,7 @@ export default function Workspace(props: Props) {
   const [show, setShow] = useState<"tasks" | "chat">("tasks");
   const [calendarNote, setCalendarNote] = useState(false);
   const ics = calendarFile(a, settings, t);
+  const googleLink = calendarLink(a, settings, t);
   const questions = teacherQuestions(a).length;
 
   return (
@@ -51,12 +52,17 @@ export default function Workspace(props: Props) {
           </p>
         </div>
         {ics && (
-          <button className="btn btn-small" onClick={() => { downloadFile(ics, `clara-${d.title.slice(0, 30).replace(/[^\w-]+/g, "-")}.ics`, "text/calendar;charset=utf-8"); setCalendarNote(true); }}>
+          <button className="btn btn-small" onClick={() => { openCalendar(ics, `clara-${d.title.slice(0, 30)}`); setCalendarNote(true); }}>
             <Icon name="calendar" /> {t.addToCalendar}
           </button>
         )}
       </header>
-      <div aria-live="polite">{calendarNote && <Notice kind="ok">{t.calendarDone}</Notice>}</div>
+      <div aria-live="polite">{calendarNote && (
+        <Notice kind="ok">
+          {t.calendarDone}
+          {googleLink && <> <a href={googleLink} target="_blank" rel="noopener noreferrer">{t.calendarGoogle}</a></>}
+        </Notice>
+      )}</div>
       {d.injected_instructions_ignored && <Notice kind="warn">{t.injectionNote}</Notice>}
 
       <div className="switch" role="group" aria-label={`${t.showTasks} / ${t.showChat}`}>

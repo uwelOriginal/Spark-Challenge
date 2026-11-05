@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { checkDate } from "../src/lib/verify.ts";
 import { parseTranscriptFile, speakerStats, transcriptText } from "../src/lib/transcript.ts";
-import { buildIcs, parseIcs } from "../src/lib/ics.ts";
+import { buildIcs, googleCalendarLink, parseIcs } from "../src/lib/ics.ts";
 
 test("weekday matches the date", () => assert.equal(checkDate("viernes 13 de noviembre a las 23:59 h", "2026-11-13"), "ok"));
 test("weekday mismatch is caught", () => assert.equal(checkDate("jueves 13 de noviembre", "2026-11-13"), "mismatch"));
@@ -40,6 +40,15 @@ test("only the kept speakers reach the model, with time marks", () => {
 test("plain text transcript becomes one segment", () => {
   const segs = parseTranscriptFile("El ensayo es individual.");
   assert.equal(segs.length, 1);
+});
+
+test("Google Calendar link carries the event in local time", () => {
+  const timed = new URL(googleCalendarLink({ uid: "a", title: "Entrega: Ensayo", description: "23:59", start: new Date(2026, 10, 13, 23, 59), end: new Date(2026, 10, 14, 0, 14), allDay: false }));
+  assert.equal(timed.searchParams.get("action"), "TEMPLATE");
+  assert.equal(timed.searchParams.get("text"), "Entrega: Ensayo");
+  assert.equal(timed.searchParams.get("dates"), "20261113T235900/20261114T001400");
+  const allDay = new URL(googleCalendarLink({ uid: "b", title: "Entrega", description: "", start: new Date(2026, 10, 13), end: new Date(2026, 10, 14), allDay: true }));
+  assert.equal(allDay.searchParams.get("dates"), "20261113/20261114");
 });
 
 test("built calendar round-trips through the parser", () => {

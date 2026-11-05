@@ -13,7 +13,7 @@ const CODE_KEY = "clara-access-code";
 
 export function getAccessCode(): string {
   try {
-    return sessionStorage.getItem(CODE_KEY) ?? "";
+    return localStorage.getItem(CODE_KEY) ?? "";
   } catch {
     return "";
   }
@@ -21,7 +21,7 @@ export function getAccessCode(): string {
 
 export function setAccessCode(code: string) {
   try {
-    sessionStorage.setItem(CODE_KEY, code);
+    localStorage.setItem(CODE_KEY, code);
   } catch {
     /* private mode: the code is asked again next time */
   }

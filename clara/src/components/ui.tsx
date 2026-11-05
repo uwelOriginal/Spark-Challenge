@@ -20,6 +20,7 @@ const paths: Record<string, ReactNode> = {
   check: <path d="M5 12l4 4 10-10" />,
   calendar: <path d="M4 7h16M7 3v4m10-4v4M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" />,
   close: <path d="M6 6l12 12M18 6 6 18" />,
+  install: <path d="M12 4v12m0 0-5-5m5 5 5-5M4 20h16" />,
   mail: <path d="M4 6h16v12H4zM4 7l8 6 8-6" />,
   flag: <path d="M5 21V4m0 0h11l-2 4 2 4H5" />,
   speaker: <path d="M5 9v6h4l5 4V5L9 9H5Zm12 0a4 4 0 0 1 0 6" />,
@@ -168,6 +169,23 @@ export function daysUntil(isoDateTime: string): number {
 
 export function formatDate(iso: string, locale: string): string {
   return new Date(iso).toLocaleDateString(locale, { weekday: "short", day: "numeric", month: "short" });
+}
+
+/** Hand a calendar to the phone: the server sends it back as a real file, so the calendar app can take over. */
+export function openCalendar(ics: string, name: string) {
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = "/api/calendar";
+  for (const [key, value] of Object.entries({ ics, name })) {
+    const field = document.createElement("textarea");
+    field.name = key;
+    field.value = value;
+    form.appendChild(field);
+  }
+  form.hidden = true;
+  document.body.appendChild(form);
+  form.submit();
+  form.remove();
 }
 
 /** Save text as a file through the browser (no server). */

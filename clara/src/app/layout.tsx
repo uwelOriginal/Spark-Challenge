@@ -25,6 +25,9 @@ if(s.theme)d.dataset.theme=s.theme;if(s.accent)d.dataset.accent=s.accent;if(s.fo
 if(s.textSize)d.dataset.text=s.textSize;if(s.controlSize)d.dataset.control=s.controlSize;if(s.spacing)d.dataset.spacing=s.spacing;if(s.motion)d.dataset.motion=s.motion;
 if(s.dialect)d.lang=s.dialect}catch(e){}`;
 
+// Chrome can offer installation before React has loaded, so the event is kept here for InstallButton.
+const installCapture = `addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__claraInstall=e;dispatchEvent(new Event("clara-install-ready"))})`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
@@ -41,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: prepaint }} />
+        <script dangerouslySetInnerHTML={{ __html: installCapture }} />
       </head>
       <body>{children}</body>
     </html>

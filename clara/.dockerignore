@@ -7,3 +7,5 @@ eval/results
 .taste-skill
 tests
 *.log
+brag-output*
+.mcp.json

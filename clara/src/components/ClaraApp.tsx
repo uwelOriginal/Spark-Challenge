@@ -8,6 +8,7 @@ import { Home, Upload } from "./Home";
 import SettingsScreen from "./Settings";
 import { isActive, packFor } from "@/lib/personal";
 import { Decor } from "./studio/Decor";
+import { InstallButton } from "./InstallButton";
 import { Icon, Mark } from "./ui";
 import Workspace from "./Workspace";
 import { Finish, Teacher } from "./Wrapup";
@@ -81,6 +82,7 @@ export default function ClaraApp() {
           <span className="wordmark">Clara</span>
         </button>
         <nav className="topnav" aria-label="Clara">
+          <InstallButton t={t} />
           <button className="btn btn-quiet" aria-current={onHome ? "page" : undefined} onClick={() => setView({ name: "home" })}>
             <Icon name="home" /> <span className="hide-narrow">{t.home}</span>
           </button>
@@ -102,6 +104,14 @@ function AccessCode({ t }: { t: Strings }) {
   const [needed, setNeeded] = useState(false);
   const [code, setCode] = useState("");
   useEffect(() => {
+    // A QR code or shared link can carry the code (?code=...), so opening it is the only step.
+    const url = new URL(window.location.href);
+    const shared = url.searchParams.get("code");
+    if (shared) {
+      setAccessCode(shared);
+      url.searchParams.delete("code");
+      window.history.replaceState(null, "", url);
+    }
     fetch("/api/health")
       .then((r) => r.json())
       .then((d) => setNeeded(Boolean(d?.accessCode) && !getAccessCode()))

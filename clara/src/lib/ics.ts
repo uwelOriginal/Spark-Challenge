@@ -24,6 +24,13 @@ function fold(line: string): string {
   return out.join("\r\n");
 }
 
+/** One event as a Google Calendar "add" link: works in any browser, with no file and no sign-in step of ours. */
+export function googleCalendarLink(e: CalEvent): string {
+  const stamp = e.allDay ? icsDate : icsLocal;
+  const q = new URLSearchParams({ action: "TEMPLATE", text: e.title, dates: `${stamp(e.start)}/${stamp(e.end)}`, details: e.description });
+  return `https://calendar.google.com/calendar/render?${q}`;
+}
+
 export function buildIcs(events: CalEvent[]): string {
   const now = icsLocal(new Date());
   const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Clara//Spark Challenge//ES", "CALSCALE:GREGORIAN"];

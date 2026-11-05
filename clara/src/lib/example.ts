@@ -7,8 +7,10 @@ import type { Source } from "./store";
 // Written brief from Canvas + what the professor said in class (Teams transcript, professor only).
 
 export function exampleSources(lang: Lang): Source[] {
-  const brief = samples.briefs.find((b) => b.id === "etica_v1")!;
-  const cls = samples.class_transcripts.find((c) => c.id === "etica_clase")!;
+  // English UI gets the English translation of the same synthetic material.
+  const sfx = lang === "en" ? "_en" : "";
+  const brief = samples.briefs.find((b) => b.id === `etica_v1${sfx}`)!;
+  const cls = samples.class_transcripts.find((c) => c.id === `etica_clase${sfx}`)!;
   const segments = parseTranscriptFile(cls.vtt);
   const professor = speakerStats(segments)[0]?.speaker ?? "Profesora";
   const now = new Date().toISOString();
@@ -25,6 +27,6 @@ export function exampleSources(lang: Lang): Source[] {
   ];
 }
 
-export function exampleNewVersion(): string {
-  return samples.briefs.find((b) => b.id === "etica_v2")!.text;
+export function exampleNewVersion(lang: Lang = "es"): string {
+  return samples.briefs.find((b) => b.id === (lang === "en" ? "etica_v2_en" : "etica_v2"))!.text;
 }
