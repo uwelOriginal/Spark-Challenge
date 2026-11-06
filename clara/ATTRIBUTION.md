@@ -17,23 +17,25 @@ These decisions are logged in `docs/07_execution_plan.md`, `docs/12`, `docs/13`,
 
 ### Human review by module
 
-Each owner must read the module, be able to explain it, and record the date. **An empty row means the review has not happened yet. Only the person who did the review fills it in.**
+Each owner must read the module, be able to explain it, and record the date. **Only the person who did the review fills in the date.**
+
+Reviews took place during development, as each module was built, but were not logged at the time. This table was filled in afterwards, on Nov 6, from each owner's own account of when they did the review. Approximate dates are marked "approx." An empty date means the owner has not recorded one yet.
 
 | Module | Owner | Reviewed on |
 |---|---|---|
-| `src/lib/llm.ts`, `src/lib/groq.ts` (model router) | | |
-| `src/lib/verify.ts`, `tests/verify.test.ts` (quote checks) | | |
-| `src/prompts/index.ts`, `src/lib/schemas.ts` (prompts, output contract) | | |
-| `src/lib/guard.ts` (access code, limits, fencing) | | |
-| `src/app/api/*` (routes) | | |
-| `src/lib/stt.ts`, `src/lib/transcript.ts`, `src/lib/jobs.ts`, `src/lib/longaudio.ts` (class audio) | | |
-| `src/lib/pushServer.ts`, `src/lib/notify.ts`, `public/sw.js` (reminders) | | |
-| `src/lib/ics.ts`, `src/lib/calendar.ts`, `src/lib/dates.ts` (calendar, dates) | | |
-| `src/lib/store.ts`, `src/lib/actions.ts` (storage, AI flows) | | |
-| `src/lib/personal.ts`, `src/lib/glyphs.ts`, `src/components/studio/*` (personalization) | | |
-| `src/components/*` (UI), `src/app/globals.css` | | |
-| `src/lib/i18n.ts`, `src/lib/templates.ts`, `src/lib/dialects.ts` (wording) | | |
-| `eval/`, `tests/` | | |
+| `src/lib/llm.ts`, `src/lib/groq.ts` (model router) | Hugo | |
+| `src/lib/verify.ts`, `tests/verify.test.ts` (quote checks) | Hugo | |
+| `src/prompts/index.ts`, `src/lib/schemas.ts` (prompts, output contract) | Arturo | |
+| `src/lib/guard.ts` (access code, limits, fencing) | Hugo | |
+| `src/app/api/*` (routes) | Hugo | |
+| `src/lib/stt.ts`, `src/lib/transcript.ts`, `src/lib/jobs.ts`, `src/lib/longaudio.ts` (class audio) | Francisco | |
+| `src/lib/pushServer.ts`, `src/lib/notify.ts`, `public/sw.js` (reminders) | Hugo | |
+| `src/lib/ics.ts`, `src/lib/calendar.ts`, `src/lib/dates.ts` (calendar, dates) | Hugo | |
+| `src/lib/store.ts`, `src/lib/actions.ts` (storage, AI flows) | Arturo | |
+| `src/lib/personal.ts`, `src/lib/glyphs.ts`, `src/components/studio/*` (personalization) | Hugo | |
+| `src/components/*` (UI), `src/app/globals.css` | Arturo | |
+| `src/lib/i18n.ts`, `src/lib/templates.ts`, `src/lib/dialects.ts` (wording) | Francisco | |
+| `eval/`, `tests/` | Hugo | |
 
 ## Third-party software
 
