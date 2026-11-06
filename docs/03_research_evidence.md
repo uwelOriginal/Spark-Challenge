@@ -1,4 +1,4 @@
-# 03 — Problem Evidence, Personas, Competitive Landscape
+# 03: Problem Evidence, Personas, Competitive Landscape
 
 Confidence tags: **[strong]** = peer-reviewed or official statistics · **[moderate]** = smaller studies or secondary reporting · **[weak]** = anecdotal or commercial. Don't put [weak] claims in the pitch.
 

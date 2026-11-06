@@ -1,9 +1,7 @@
 import { spawn } from "node:child_process";
 import ffmpegPath from "ffmpeg-static";
 
-// ffmpeg helpers for long recordings (server side). Each part is re-encoded to what Whisper
-// uses internally anyway (16 kHz mono), as FLAC: lossless and well under Groq's 25 MB limit
-// for a 10-minute part.
+// 16 kHz mono is what Whisper uses anyway. FLAC keeps a 10-minute part under Groq's 25 MB.
 
 function run(args: string[]): Promise<{ code: number; stderr: string }> {
   return new Promise((resolve, reject) => {
@@ -18,7 +16,6 @@ function run(args: string[]): Promise<{ code: number; stderr: string }> {
   });
 }
 
-/** Duration in seconds, read from ffmpeg's own probe output. */
 export async function durationOf(input: string): Promise<number> {
   const { stderr } = await run(["-hide_banner", "-i", input]);
   const m = stderr.match(/Duration:\s*(\d+):(\d{2}):(\d{2}(?:\.\d+)?)/);
@@ -26,7 +23,6 @@ export async function durationOf(input: string): Promise<number> {
   return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]);
 }
 
-/** Cut [start, start + seconds) to a 16 kHz mono FLAC file. */
 export async function cutPart(input: string, start: number, seconds: number, output: string): Promise<void> {
   const { code, stderr } = await run([
     "-hide_banner", "-loglevel", "error", "-y",
@@ -36,7 +32,7 @@ export async function cutPart(input: string, start: number, seconds: number, out
   if (code !== 0) throw new Error(`ffmpeg failed: ${stderr.slice(-300)}`);
 }
 
-/** Part boundaries: fixed length with a small overlap so no word is lost at a cut. */
+// overlap so no word is lost at a cut
 export function planParts(duration: number, partSeconds: number, overlap: number): { index: number; start: number; seconds: number; keepFrom: number }[] {
   const parts = [];
   for (let i = 0, keepFrom = 0; keepFrom < duration; i++, keepFrom += partSeconds) {

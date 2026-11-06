@@ -1,4 +1,4 @@
-# 08 — Feasibility (build capacity, failure surfaces) & Fallback Concepts
+# 08: Feasibility (build capacity, failure surfaces) & Fallback Concepts
 
 ## 1. Build-capacity assumption
 The build is **AI-assisted (Claude Code) with a human in the loop**. Claude writes and integrates code fast. Humans review, modify, and own every module.
@@ -13,14 +13,14 @@ The build is **AI-assisted (Claude Code) with a human in the loop**. Claude writ
 | F2 Decoder | Low–Med | Malformed JSON, invented items | Structured outputs (schema-enforced), mandatory quotes, golden-set evals |
 | F3 Ask, don't guess | Low | Tone of the professor draft | Templates reviewed by humans. The student edits before sending. |
 | F4 Planner | Med | Date and timezone errors, Spanish date formats | **The LLM proposes steps. Deterministic, unit-tested code schedules them.** |
-| F5 Now view | Low | — | — |
+| F5 Now view | Low | - | - |
 | F6 Adaptation | Low–Med | Profile drift | Simple rules (step-size multiplier, pace factor), shown and editable |
-| F7 Onboarding | Low | — | — |
+| F7 Onboarding | Low | - | - |
 | F8 ES/EN | Low | Mixed-language output | Language set explicitly in every prompt. Tests TC4. |
 | F9 Deploy + auth | Med | Magic-link emails going to spam, redirect misconfiguration | **Anonymous sessions + optional login.** No email dependency on the critical path. |
 | F10 Change Translator | Low–Med | Missing a subtle change | Diff of two decode JSONs in code + LLM wording only |
 | F11 Surfer Bridge | Low | Over-sharing | Preview-and-delete UI. Share via a copy or link, no email. |
-| F12 Calendar | Low | — | `.ics` file |
+| F12 Calendar | Low | - | `.ics` file |
 | F13 Reminders | **Med–High** | Cron jobs, email deliverability, push permissions | **Replace with `.ics` alarms (VALARM).** The student's own calendar notifies them at times they chose. No servers, no spam folders, predictable. |
 
 **Verdict:** P0 plus P1 (with F13 done via .ics) is feasible in ~4–5 build days with AI assistance. The risk sits in **integration surfaces, not feature count**.

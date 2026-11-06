@@ -17,7 +17,7 @@ function isPrivateAddress(ip: string): boolean {
   return x === 0 || x === 10 || x === 127 || (x === 169 && y === 254) || (x === 172 && y >= 16 && y <= 31) || (x === 192 && y === 168) || (x === 100 && y >= 64 && y <= 127);
 }
 
-/** The server fetches this address for the student: never let it reach inside our own network. */
+// we fetch this URL for the student, so block private addresses (SSRF)
 async function publicHost(hostname: string): Promise<boolean> {
   try {
     const found = await lookup(hostname.replace(/^\[|\]$/g, ""), { all: true });
@@ -27,10 +27,8 @@ async function publicHost(hostname: string): Promise<boolean> {
   }
 }
 
-// POST { url } -> upcoming assignments from a Canvas calendar feed
-// (Canvas > Calendar > "Calendar Feed": https://<canvas-host>/feeds/calendars/user_<token>.ics).
-// No Canvas login or API token. The feed URL stays on the student's device; we only read it.
-// url = "demo" reads a synthetic feed bundled with the app.
+// POST { url } -> upcoming assignments from a Canvas calendar feed.
+// Canvas > Calendar > Calendar Feed. No login or token needed. url = "demo" reads the sample feed.
 export async function POST(req: Request) {
   const blocked = guard(req);
   if (blocked) return blocked;
@@ -48,7 +46,7 @@ export async function POST(req: Request) {
       raw = await fs.readFile(path.join(process.cwd(), "public", "samples", "canvas-demo.ics"), "utf8");
     } else {
       const u = new URL(url);
-      // Only Canvas-style calendar feeds over HTTPS (limits what this endpoint can be used to fetch).
+      // only Canvas-style feeds over https
       if (u.protocol !== "https:" || !/\/feeds\/calendars\/[^/]+\.ics$/i.test(u.pathname)) {
         return json({ error: "bad_feed_url" }, 400);
       }

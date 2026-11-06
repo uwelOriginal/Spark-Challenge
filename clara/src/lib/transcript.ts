@@ -1,10 +1,7 @@
-// Shared (client + server) helpers for class transcripts.
-// A transcript is a list of segments; the student keeps only the speakers they choose
-// (usually the professor) before anything is sent to the model.
+// Used by client and server. Only the speakers the student keeps reach the model.
 
 export type Segment = { speaker: string; start: number; end: number; text: string };
 
-/** 03:12 for short recordings, 1:05:30 once the class passes an hour. */
 export function mmss(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds));
   const h = Math.floor(s / 3600);
@@ -13,7 +10,6 @@ export function mmss(seconds: number): string {
   return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${String(m).padStart(2, "0")}:${sec}`;
 }
 
-/** Talk time per speaker, largest first. */
 export function speakerStats(segments: Segment[]): { speaker: string; seconds: number; share: number }[] {
   const totals = new Map<string, number>();
   for (const s of segments) totals.set(s.speaker, (totals.get(s.speaker) ?? 0) + Math.max(0, s.end - s.start));
@@ -23,7 +19,6 @@ export function speakerStats(segments: Segment[]): { speaker: string; seconds: n
     .sort((a, b) => b.seconds - a.seconds);
 }
 
-/** Text sent to the model: only the chosen speakers, one line per segment with a [mm:ss] mark. */
 export function transcriptText(segments: Segment[], keep: Set<string>): string {
   return segments
     .filter((s) => keep.has(s.speaker))
@@ -36,12 +31,9 @@ function toSeconds(stamp: string): number {
   return parts.reduce((acc, p) => acc * 60 + p, 0);
 }
 
-/**
- * Parse WebVTT (Teams/Zoom exports, "<v Name>text</v>" speaker tags) or SRT into segments.
- * Plain text without timestamps becomes a single segment.
- */
+// WebVTT (Teams, Zoom) or SRT. Plain text becomes one segment.
 export function parseTranscriptFile(raw: string): Segment[] {
-  const text = raw.replace(/\r/g, "").replace(/^﻿/, "");
+  const text = raw.replace(/\r/g, "").replace(/^\uFEFF/, "");
   const blocks = text.split(/\n{2,}/);
   const out: Segment[] = [];
   for (const block of blocks) {
@@ -54,7 +46,7 @@ export function parseTranscriptFile(raw: string): Segment[] {
     const v = body.match(/<v\s+([^>]+)>/i);
     if (v) speaker = v[1].trim();
     else {
-      const named = body.match(/^([^:]{2,40}):\s+/); // "Name: text" style
+      const named = body.match(/^([^:]{2,40}):\s+/);
       if (named) {
         speaker = named[1].trim();
         body = body.slice(named[0].length);

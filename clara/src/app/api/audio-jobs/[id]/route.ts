@@ -3,7 +3,7 @@ import { getJob } from "@/lib/jobs";
 
 export const runtime = "nodejs";
 
-// GET -> progress of a whole-class transcription job; the transcript and passages once done.
+// GET -> job progress, then transcript and passages
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const blocked = guard(req, { rateLimit: false });
   if (blocked) return blocked;

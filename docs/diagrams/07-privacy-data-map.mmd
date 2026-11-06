@@ -1,0 +1,28 @@
+flowchart TB
+    subgraph D["Stays on the device"]
+      D1["Assignments, sources, chat history"]
+      D2["Settings and interest"]
+      D3["Reminder texts (service worker cache)"]
+      D4["'Delete all my data' wipes these"]
+    end
+    subgraph T["In transit: one request, not stored"]
+      T1["Text of the sources the student chose"]
+      T2["Chat message and capped profile"]
+      T3["Class audio during its job"]
+      T4["Provider logs: task and model only, never content"]
+    end
+    subgraph K["Kept on the server"]
+      K1["Push address, opaque reminder ids, times<br/>no assignment text"]
+    end
+    subgraph N["Never collected"]
+      N1["Diagnosis or health data"]
+      N2["Accounts, names of classmates, grades"]
+      N3["Other voices from class: discarded before the model sees them"]
+    end
+    subgraph P["Third-party processors"]
+      P1["Groq · Anthropic · ElevenLabs if enabled"]
+    end
+    D1 -->|student taps Read or Ask| T1
+    D2 --> T2
+    T1 & T2 & T3 --> P1
+    D3 -.->|only ids and times| K1

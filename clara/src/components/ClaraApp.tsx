@@ -14,13 +14,7 @@ import { Icon, Mark } from "./ui";
 import Workspace from "./Workspace";
 import { Finish, Teacher } from "./Wrapup";
 
-// The whole app is one small state machine:
-//
-//   home ──new──▶ upload ──read──▶ work ◀──back── teacher
-//     ▲                             │  └──────────▶ finish ──delete──▶ home
-//     └──────────── header ─────────┘
-//
-// A first-time student (no assignments) lands on upload instead of an empty home.
+// Views: home -> upload -> work -> teacher | finish. First visit with no assignments starts on upload.
 
 type View =
   | { name: "home" }
@@ -28,7 +22,7 @@ type View =
   | { name: "settings" }
   | { name: "work" | "teacher" | "finish"; id: string };
 
-/** Mirror display preferences onto <html> so CSS can theme everything from data attributes. */
+// CSS themes everything from these data attributes
 export function applyDisplay(s: Settings) {
   const el = document.documentElement;
   el.lang = s.dialect;
@@ -52,7 +46,7 @@ export default function ClaraApp() {
     if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
   }, []);
 
-  // Tapping a reminder opens Clara on that assignment (/?open=<id>, from the service worker).
+  // /?open=<id> comes from the service worker
   useEffect(() => {
     if (!store.ready) return;
     const url = new URL(window.location.href);
@@ -63,17 +57,17 @@ export default function ClaraApp() {
     setView({ name: "work", id: open });
   }, [store.ready]);
 
-  // Reminders follow the assignments: new dates, finished work and changed times all reschedule.
+  // reschedule when dates or finished work change
   useEffect(() => {
     if (!store.ready || access.state !== "open" || !("serviceWorker" in navigator)) return;
     const wait = setTimeout(() => {
       if (settings.notifications) void syncNotifications(store.assignments, settings, t).catch(() => {});
-      else void disableNotifications().catch(() => {}); // also covers "delete all my data"
+      else void disableNotifications().catch(() => {}); // also runs after deleting all data
     }, 800);
     return () => clearTimeout(wait);
   }, [store.ready, access.state, store.assignments, settings.notifications, settings.reminderDays, settings.reminderTime, settings.lang]);
 
-  // On every screen change, move focus to the new heading so screen readers announce it.
+  // move focus so screen readers announce the new screen
   useEffect(() => {
     main.current?.querySelector<HTMLElement>("h1")?.focus({ preventScroll: true });
     window.scrollTo({ top: 0 });
@@ -124,13 +118,13 @@ export default function ClaraApp() {
   );
 }
 
-/** Asks the server whether this device may use the demo. The server's guard stays the real protection. */
+// UI check only, guard() on the server is what actually protects the API
 async function codeAccepted(code: string): Promise<boolean> {
   try {
     const res = await fetch("/api/health", { headers: code ? { "x-clara-code": code } : {}, cache: "no-store" });
     return (await res.json()).authorized !== false;
   } catch {
-    return true; // offline: saved work stays readable, and every AI call still needs the code
+    return true; // offline: saved work still readable
   }
 }
 
@@ -146,7 +140,7 @@ function useAccess() {
   }
 
   useEffect(() => {
-    // A QR code or shared link can carry the code (?code=...), so opening it is the only step.
+    // a shared link or QR can carry ?code=
     const url = new URL(window.location.href);
     const shared = url.searchParams.get("code");
     if (shared) {
@@ -159,7 +153,6 @@ function useAccess() {
   return { state, wrong, tryCode };
 }
 
-/** Replaces the whole app until the code is accepted, on deployments that set one. */
 function AccessScreen({ t, access }: { t: Strings; access: ReturnType<typeof useAccess> }) {
   const [code, setCode] = useState("");
   return (

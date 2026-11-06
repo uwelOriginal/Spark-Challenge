@@ -1,0 +1,13 @@
+flowchart TD
+    A["Student uploads a class recording<br/>(recorded with the professor's permission)"] --> B["/api/audio-jobs<br/>streamed upload, background job"]
+    B --> C["ffmpeg: 10-minute parts<br/>5 s overlap, 16 kHz mono FLAC"]
+    C --> D["Up to 3 parallel Whisper calls<br/>alternate large-v3 and turbo"]
+    D -->|both models rate-limited| W["Wait for retry-after<br/>UI shows when Clara resumes"]
+    W --> D
+    D --> E["Merge and re-time segments<br/>drop the overlap"]
+    E --> F["Map: per part, CLASS_EXTRACT_SYSTEM copies<br/>only coursework passages"]
+    F --> G["verify: each passage checked<br/>word for word against its part"]
+    G --> H["Reduce: remove duplicates"]
+    H --> I["Student reviews and chooses passages<br/>nothing else reaches the decode"]
+    I --> J["/api/decode as a 'class' source"]
+    B -.->|audio is temporary, deleted by the job| Z["Not kept by Clara"]

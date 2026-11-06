@@ -5,8 +5,7 @@ import { plannedNotifications } from "./calendar";
 import type { Strings } from "./i18n";
 import type { Assignment, Settings } from "./store";
 
-// Push reminders on this device. The reminder texts stay here, in a cache only the service worker
-// reads. The server gets opaque ids and times, and wakes the phone when one is due (lib/pushServer.ts).
+// Reminder texts stay in a cache on the device. The server only gets ids and times.
 
 export const REMINDER_CACHE = "clara-reminders-v1";
 const REMINDER_KEY = "/__clara/reminders";
@@ -51,10 +50,9 @@ async function currentSubscription(): Promise<PushSubscription | null> {
   return reg ? reg.pushManager.getSubscription() : null;
 }
 
-/** What Settings should offer on this device. */
 export async function notifyState(enabled: boolean): Promise<NotifyState> {
   const supported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
-  // iPhone only exposes these APIs inside the installed app, so check this first.
+  // iPhone only has these APIs in the installed app
   if (isIos() && !isStandalone()) return "needs-install";
   if (!supported) return "unsupported";
   if (Notification.permission === "denied") return "denied";
@@ -62,7 +60,7 @@ export async function notifyState(enabled: boolean): Promise<NotifyState> {
   return enabled && Notification.permission === "granted" && (await currentSubscription()) ? "on" : "off";
 }
 
-/** Must run from a tap: browsers refuse a permission request made any other way. */
+// must run from a tap, browsers refuse otherwise
 export async function enableNotifications(): Promise<boolean> {
   const permission = await Notification.requestPermission();
   if (permission !== "granted") return false;
@@ -81,7 +79,6 @@ export async function disableNotifications(): Promise<void> {
   await sub.unsubscribe().catch(() => false);
 }
 
-/** Keep the phone's texts and the server's schedule in line with the current assignments. */
 export async function syncNotifications(assignments: Assignment[], settings: Settings, t: Strings): Promise<number> {
   const sub = await currentSubscription();
   if (!sub) return 0;
@@ -94,7 +91,6 @@ export async function syncNotifications(assignments: Assignment[], settings: Set
   return res.ok ? planned.length : 0;
 }
 
-/** A real push through the server, the same path a reminder takes. Resolves once it has been sent. */
 export async function testNotification(): Promise<boolean> {
   const sub = await currentSubscription();
   if (!sub) return false;

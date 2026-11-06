@@ -4,11 +4,9 @@ import { useEffect, useState } from "react";
 import type { Strings } from "@/lib/i18n";
 import { Icon } from "./ui";
 
-// "Install Clara". Where the browser allows it (Chrome, Edge, Samsung Internet, Opera on Android and
-// desktop), one tap opens the browser's own confirmation. Chrome can take a while to allow it, or
-// never does, so on phones the button is always there: until the browser is ready it shows the menu
-// steps, and it switches to the one-tap dialog as soon as it can. iPhones have no such dialog in any
-// browser, so they get the two steps. It never opens by itself: a surprise popup is what Clara avoids.
+// Chromium browsers get the native prompt, but it can come late or never, so Android phones
+// show the menu steps until it's ready. iPhones have no prompt at all, so always the steps.
+// Never opens by itself.
 
 type InstallEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
 type InstallWindow = Window & { __claraInstall?: InstallEvent | null };
@@ -19,7 +17,7 @@ const isAndroid = () => /Android/i.test(UA());
 function isIos(): boolean {
   return /iPad|iPhone|iPod/.test(UA()) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 }
-/** Browsers inside other apps (Instagram, Facebook, TikTok, LINE, a WebView) cannot install anything. */
+// in-app browsers can't install
 function isInAppBrowser(): boolean {
   return /FBAN|FBAV|FB_IAB|Instagram|Line\/|TikTok|musical_ly|Snapchat|MicroMessenger|; wv\)/i.test(UA());
 }
@@ -30,7 +28,7 @@ function isInstalled(): boolean {
 function fallbackMode(): Mode {
   if (isInAppBrowser()) return "inapp";
   if (isIos()) return "ios";
-  return isAndroid() ? "menu" : "hidden"; // desktop browsers without an install dialog: nothing to offer
+  return isAndroid() ? "menu" : "hidden";
 }
 
 export function InstallButton({ t }: { t: Strings }) {
@@ -40,7 +38,7 @@ export function InstallButton({ t }: { t: Strings }) {
 
   useEffect(() => {
     if (isInstalled()) return;
-    // The event can fire before React loads: the inline script in layout.tsx keeps it for us.
+    // layout.tsx keeps the event if it fired before React loaded
     setMode((window as InstallWindow).__claraInstall ? "prompt" : fallbackMode());
     const ready = () => {
       setMode("prompt");
@@ -64,7 +62,7 @@ export function InstallButton({ t }: { t: Strings }) {
     if (!event) return setMode(fallbackMode());
     await event.prompt();
     const choice = await event.userChoice.catch(() => null);
-    w.__claraInstall = null; // a prompt event can only be used once
+    w.__claraInstall = null; // single use
     setMode(choice?.outcome === "accepted" ? "hidden" : fallbackMode());
   }
 
@@ -73,7 +71,7 @@ export function InstallButton({ t }: { t: Strings }) {
     setCopied(true);
   }
 
-  // Android can hand the page straight to Chrome from inside another app.
+  // Android can jump to Chrome from another app
   const chromeLink = `intent://${location.host}/#Intent;scheme=https;package=com.android.chrome;end`;
 
   return (

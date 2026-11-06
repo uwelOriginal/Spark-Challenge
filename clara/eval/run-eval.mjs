@@ -1,18 +1,14 @@
-// Clara vs. generic chatbot: internal pilot benchmark + automated test cases.
-//
-// Baseline = the SAME model asked the way a student would ask a chatbot ("help me understand
-// this assignment"), so the comparison isolates Clara's design, not the model.
-// A judge call (blind: it only sees "a response") scores each answer against hand-labeled
-// expected ambiguities. Synthetic briefs only: repeat with real partner briefs.
-//
-// Usage: npm run dev   (in another terminal), then: npm run eval
+// Clara vs. the same model used as a plain chatbot, plus test cases.
+// Same model on both sides so we measure the design, not the model.
+// The judge only sees "a response" and scores it against hand-labeled ambiguities. Synthetic briefs.
+// Start the server first, then: npm run eval
 import fs from "node:fs";
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 
 const BASE = process.env.CLARA_URL ?? "http://localhost:3000";
-// Baseline chatbot and judge model (the app itself routes Groq first; see src/lib/llm.ts).
+// baseline and judge only, the app has its own routing
 const MODEL = process.env.CLARA_EVAL_MODEL ?? process.env.CLARA_MODEL ?? "claude-sonnet-5-5";
 const fallback = MODEL.startsWith("claude-haiku")
   ? {}
@@ -94,7 +90,7 @@ const rows = await Promise.all(ids.map(async (id) => {
 }));
 const changes = await post("/api/changes", { before: byId.etica_v1.text, after: byId.etica_v2.text, lang: "es" });
 
-// Multi-source: written brief + what the professor said in class (synthetic Teams transcript, professor only)
+// brief + synthetic class transcript
 const { class_transcripts } = JSON.parse(fs.readFileSync(new URL("../src/samples/briefs.json", import.meta.url), "utf8"));
 const classText = class_transcripts[0].vtt
   .split(/\n\n/)
@@ -109,7 +105,7 @@ const multi = await post("/api/decode", {
   lang: "es",
 });
 
-// ---- deterministic test cases on Clara ----
+// test cases
 let qv = 0, qt = 0;
 for (const r of rows) { qv += r.clara.quote_check.verified; qt += r.clara.quote_check.total; }
 check("TC1", "Quotes verified word for word (>= 90%)", qt > 0 && qv / qt >= 0.9, `${qv}/${qt}`);
@@ -128,7 +124,7 @@ const fromClass = [...multi.deliverables, ...multi.format_requirements, ...multi
 check("TC10", "Brief vs class: contradiction flagged and class facts used with verified quotes", multi.ambiguities.some((a) => a.kind === "contradiction") && fromClass.length >= 2, `${fromClass.length} verified facts from class; quotes ${multi.quote_check.verified}/${multi.quote_check.total}`);
 check("TC10b", "Class answers what the brief left open (length 1,500 words)", /1[.,]?500/.test(JSON.stringify(fromClass)));
 
-// ---- comparison table ----
+// comparison table
 const sum = (rs, key, field) => rs.reduce((n, r) => n + r[key].topics.filter((t) => t[field]).length, 0);
 const labeled = rows.filter((r) => byId[r.id].expected_ambiguities.length > 0);
 const totalTopics = labeled.reduce((n, r) => n + byId[r.id].expected_ambiguities.length, 0);

@@ -1,4 +1,4 @@
-# 13 — Cost and Model Routing (Oct 27, late night)
+# 13: Cost and Model Routing (Oct 27, late night)
 
 **Goal set by the team:** keep the demo and MVP as cheap as possible.
 **Result:** with a free Groq key, nearly every call costs **US$0**. Anthropic is called only when the free tier is rate-limited, fails, or gives an answer that fails Clara's own quote check. ElevenLabs is now optional and off by default.
@@ -22,9 +22,9 @@
 | What changed | Groq `gpt-oss-120b` | Anthropic | ≥ 80% of change quotes found |
 | Label speakers (audio) | Groq `gpt-oss-120b` | Anthropic | Schema only |
 | Read a photo of a brief | Groq `qwen/qwen3.8-27b` (vision) | Anthropic | Not empty |
-| Read a scanned PDF | — (Groq doesn't read PDFs) | Anthropic | — |
-| PDF with a text layer | Local `unpdf` (no AI, $0) | — | — |
-| Class audio → text | Groq Whisper large v3 | ElevenLabs (optional) | — |
+| Read a scanned PDF | - (Groq doesn't read PDFs) | Anthropic | - |
+| PDF with a text layer | Local `unpdf` (no AI, $0) | - | - |
+| Class audio → text | Groq Whisper large v3 | ElevenLabs (optional) | - |
 
 - `CLARA_ROUTE=groq` → **free only.** If Groq is rate-limited, the user sees "intenta en un minuto" instead of being charged.
 - `CLARA_ROUTE=groq,anthropic` (default) → free first, paid only on escalation. **Recommended for demo day**, so a rate limit never breaks the live pitch.

@@ -1,4 +1,3 @@
-// Run: npm test   (Node 24 strips TypeScript types natively)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { checkDate } from "../src/lib/verify.ts";

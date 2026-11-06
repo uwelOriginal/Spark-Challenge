@@ -11,12 +11,10 @@ import { DEFAULT_SETTINGS, type Assignment, type Accent, type Font, type Layout,
 import { Board } from "./studio/Scene";
 import { Choice, Icon, ListenButton, Notice, openCalendar } from "./ui";
 
-// Every preference applies at once (ClaraApp mirrors them onto <html data-*>) and stays on the device.
 
 const RATES = VOICE_RATES;
 type Rate = keyof typeof RATES;
 
-/** Turn push reminders on or off and send a real one to see how it looks. */
 function Notifications({ t, assignments, settings, onSettings }: { t: Strings; assignments: Assignment[]; settings: Settings; onSettings: (p: Partial<Settings>) => void }) {
   const [state, setState] = useState<NotifyState | null>(null);
   const [count, setCount] = useState(0);
@@ -109,7 +107,7 @@ export default function SettingsScreen({ t, assignments, settings, onSettings, o
           name="pack"
           value={settings.pack}
           options={[{ value: "auto" as const, label: `${t.packAuto} (${PACKS[guessPack(settings.interest)].label[settings.lang]})` }, ...PACK_IDS.map((p) => ({ value: p, label: PACKS[p].label[settings.lang] }))]}
-          // Choosing a theme also updates the interest text, so analogies and chat follow the new theme.
+          // keep interest text in sync so analogies follow the theme
           onChange={(pack) => onSettings(pack !== "auto" && pack !== "generic" && guessPack(settings.interest) !== pack ? { pack, interest: PACKS[pack].label[settings.lang] } : { pack })}
         />
         <Choice<Depth> legend={t.depthLabel} name="depth" value={settings.depth} options={opts(t.depths)} onChange={(depth) => onSettings({ depth })} wide />

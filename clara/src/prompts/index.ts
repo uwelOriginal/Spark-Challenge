@@ -1,20 +1,8 @@
-// Clara system prompts. Versioned here so the "PDF of AI prompts" deliverable
-// can be generated straight from source. Bump the version when wording changes.
+// System prompts. Bump PROMPT_VERSION when wording changes and rebuild the prompts PDF.
 
-export const PROMPT_VERSION = "decode-v2.2 / chat-v2.1 / theme-v1.0 / changes-v1.0 / speakers-v1.0 / class-extract-v1.0 / transcribe-v1.0 (2026-11-04)";
-// Two kinds of prompt. EXTRACTION prompts (decode, changes, speakers, class-extract, transcribe) read the
-// sources and must stay literal: no metaphors or analogies, every claim quoted, so nothing is hallucinated.
-// EXPLANATION prompts (chat, theme) teach: they may and should use analogies, examples and the student's
-// interests, but they never change a fact taken from the sources, and analogies are always labelled.
-// chat-v2.1: a request for a different interest always comes with a settings proposal.
-// chat-v2.0 / theme-v1.0: interest-based personalization, figures, settings proposals (docs/15).
-// decode-v2.3: relative dates ("mañana", "el viernes") become real dates, counted from the source's date.
-// decode-v2.2: the literal rule names analogies explicitly and says why (extraction only).
-// decode-v2.1: other dated events in the sources (e.g. an exam announced in class) become their own deadlines.
-// The same prompts run on every provider in the router (Groq free tier first, Anthropic on escalation).
-// decode-v1.1: ambiguities ordered by importance and capped at 8 (12 was overwhelming in the first real run).
-// decode-v2.0: several sources per assignment (brief, rubric, class transcript, announcements),
-//              cross-source contradictions, machine-readable dates for calendar export.
+export const PROMPT_VERSION = "decode-v2.3 / chat-v2.1 / theme-v1.0 / changes-v1.0 / speakers-v1.0 / class-extract-v1.0 / transcribe-v1.0 (2026-11-04)";
+// Extraction prompts stay literal so every claim can be checked. Explanation prompts (chat, theme)
+// may use labelled analogies but can't change a fact. Same prompts on every provider.
 
 export const DECODE_SYSTEM = `You are Clara, an assistant that helps university students, especially autistic and ADHD students, understand course assignments. You do not do the assignment. You decode it so the student knows exactly what is being asked, what is unclear, and how to start.
 
@@ -82,7 +70,6 @@ For each passage: "time" is the time mark of the line where it starts (as writte
 
 export const TRANSCRIBE_SYSTEM = `You transcribe course documents. Copy all readable text from the image or PDF exactly as written, keeping line breaks and list markers. Do not summarize, translate, correct or comment. If there is no readable text, return an empty response.`;
 
-/** Wrap each source in tags the prompts understand. */
 export function sourcesBlock(sources: { id: string; kind: string; name: string; text: string; date?: string }[], fence: (t: string) => string) {
   return sources
     .map((s) => `<source id="${s.id}" kind="${s.kind}" name="${s.name.replace(/"/g, "'")}"${s.date ? ` date="${s.date}"` : ""}>\n${fence(s.text)}\n</source>`)

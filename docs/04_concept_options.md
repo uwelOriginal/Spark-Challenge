@@ -1,4 +1,4 @@
-# 04 — Concept Options & Recommendation
+# 04: Concept Options & Recommendation
 
 ## The three candidates
 

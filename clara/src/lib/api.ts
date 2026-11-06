@@ -5,8 +5,7 @@ import type { ChangesResult, ChatResult, DecodeResult, Lang, SourceInput, Theme 
 import type { FeedItem } from "./ics";
 import type { Segment } from "./transcript";
 
-// Browser-side calls to Clara's API routes. Errors become ApiError(code) so the UI can show
-// the matching plain-language message from i18n.
+// Errors become ApiError(code), the UI maps the code to a message.
 
 export class ApiError extends Error {}
 
@@ -24,7 +23,7 @@ export function setAccessCode(code: string) {
   try {
     localStorage.setItem(CODE_KEY, code);
   } catch {
-    /* private mode: the code is asked again next time */
+    /* private mode */
   }
 }
 
@@ -51,7 +50,6 @@ const today = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
-/** Output language for the AI: the UI language plus its regional variant (see dialects.ts). */
 export type Voice = { lang: Lang; dialect: string };
 
 export const api = {
@@ -73,7 +71,7 @@ export const api = {
     return call<{ segments: Segment[]; language: string | null; diarization: "acoustic" | "estimated" | "none" }>("/api/transcribe", f);
   },
 
-  /** Whole-class recordings: upload once (streamed), then poll the background job. */
+  // upload once, then poll the job
   startAudioJob: async (file: Blob, name: string, lang: Lang): Promise<{ id: string }> => {
     const code = getAccessCode();
     let res: Response;

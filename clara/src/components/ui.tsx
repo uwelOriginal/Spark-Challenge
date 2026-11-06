@@ -5,8 +5,7 @@ import { ApiError } from "@/lib/api";
 import type { Strings } from "@/lib/i18n";
 import type { Source } from "@/lib/store";
 
-// Small shared pieces. Icons are one outline set, decorative (aria-hidden): every icon
-// button also carries a visible or screen-reader label.
+// Icons are decorative. Icon buttons carry their own label.
 
 const paths: Record<string, ReactNode> = {
   home: <path d="M4 11 12 4l8 7M6 9.5V20h12V9.5" />,
@@ -34,7 +33,7 @@ export function Icon({ name, size = 20 }: { name: keyof typeof paths | string; s
   );
 }
 
-/** Clara's mark: the Neurosurfer's yellow circle holding a wave, from the partner's own diagram. */
+// yellow circle from the partner's diagram
 export function Mark({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
@@ -44,7 +43,6 @@ export function Mark({ size = 28 }: { size?: number }) {
   );
 }
 
-/** The three-step flow, always visible inside an assignment so the student knows where they are. */
 export function FlowSteps({ t, current }: { t: Strings; current: 0 | 1 | 2 }) {
   return (
     <ol className="flow" aria-label="Clara">
@@ -58,7 +56,7 @@ export function FlowSteps({ t, current }: { t: Strings; current: 0 | 1 | 2 }) {
   );
 }
 
-/** A labelled group of native radio buttons: keyboard and screen-reader behaviour for free. */
+// native radios for keyboard and screen readers
 export function Choice<T extends string>({ legend, name, value, options, onChange, help, wide = false }: {
   legend: string;
   name: string;
@@ -85,7 +83,6 @@ export function Choice<T extends string>({ legend, name, value, options, onChang
   );
 }
 
-/** "See where it says this": the verbatim quote, which source it came from, and whether code found it. */
 export function Quote({ quote, sourceId, verified, sources, t }: { quote: string | null; sourceId: string | null; verified: boolean; sources: Source[]; t: Strings }) {
   if (!quote) return null;
   const src = sources.find((s) => s.id === sourceId);
@@ -112,7 +109,7 @@ export function CopyButton({ text, t }: { text: string; t: Strings }) {
           setCopied(true);
           setTimeout(() => setCopied(false), 2000);
         } catch {
-          /* clipboard blocked: the text stays selectable in the box */
+          /* clipboard blocked, text is still selectable */
         }
       }}
     >
@@ -121,7 +118,7 @@ export function CopyButton({ text, t }: { text: string; t: Strings }) {
   );
 }
 
-/** Read aloud with the device's own voice (Web Speech API): free, no server. Hidden when unsupported. */
+// Web Speech API, hidden when unsupported
 export function ListenButton({ text, t, rate, label }: { text: string; t: Strings; rate: number; label?: string }) {
   const [speaking, setSpeaking] = useState(false);
   const [supported, setSupported] = useState(false);
@@ -171,7 +168,7 @@ export function formatDate(iso: string, locale: string): string {
   return new Date(iso).toLocaleDateString(locale, { weekday: "short", day: "numeric", month: "short" });
 }
 
-/** Hand a calendar to the phone: the server sends it back as a real file, so the calendar app can take over. */
+// served as a real file so the calendar app opens it
 export function openCalendar(ics: string, name: string) {
   const form = document.createElement("form");
   form.method = "POST";
@@ -188,7 +185,6 @@ export function openCalendar(ics: string, name: string) {
   form.remove();
 }
 
-/** Save text as a file through the browser (no server). */
 export function downloadFile(content: string, filename: string, type: string) {
   const url = URL.createObjectURL(new Blob([content], { type }));
   const link = document.createElement("a");

@@ -10,13 +10,12 @@ import type {
 } from "./schemas";
 import { resolveRelative } from "./dates.ts";
 
-// Quote verification: the model must back each claim with a verbatim excerpt.
-// We check it in code, so the student sees which claims are traceable to their sources.
+// Checks each quote in code instead of trusting the model.
 
 export function normalize(s: string): string {
   return s
     .normalize("NFKC")
-    .replace(/\[\d{1,2}:\d{2}(?::\d{2})?\]/g, " ") // ignore transcript time marks
+    .replace(/\[\d{1,2}:\d{2}(?::\d{2})?\]/g, " ") // time marks
     .replace(/[‘’‚‛′]/g, "'")
     .replace(/[“”„‟″«»]/g, '"')
     .replace(/[‐-―−]/g, "-")
@@ -35,7 +34,7 @@ export function quoteFound(source: string, quote: string | null): boolean {
   if (q.length < 3) return false;
   if (src.includes(q)) return true;
 
-  // Allow an elided quote ("first part ... last part") if every part appears in order.
+  // allow "first part ... last part" if the parts appear in order
   const parts = q.split(/\s*\.\.\.\s*/).filter((p) => p.length >= 3);
   if (parts.length < 2) return false;
   let from = 0;
@@ -47,7 +46,6 @@ export function quoteFound(source: string, quote: string | null): boolean {
   return true;
 }
 
-/** A quote counts as verified only if it appears in the source it claims to come from. */
 function inSource(sources: SourceInput[], sourceId: string | null, quote: string | null): boolean {
   const s = sources.find((x) => x.id === sourceId);
   return !!s && quoteFound(s.text, quote);
@@ -58,7 +56,6 @@ const WEEKDAYS: Record<string, number> = {
   sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6,
 };
 
-/** If the text names a weekday, it must match the weekday of the model's YYYY-MM-DD date. */
 export function checkDate(when: string, date: string | null): DateCheck {
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return "none";
   const [y, m, d] = date.split("-").map(Number);
@@ -68,17 +65,16 @@ export function checkDate(when: string, date: string | null): DateCheck {
   return named[1] === weekday ? "ok" : "mismatch";
 }
 
-/** Dates from relative words are computed here, from the day the source was said or written. */
 export function resolveDeadlineDate<T extends { when: string; date: string | null; quote: string | null; source_id: string | null }>(x: T, sources: SourceInput[], today: string): T & { date_computed?: boolean } {
   const ref = sources.find((s) => s.id === x.source_id)?.date ?? today;
   const fromWhen = resolveRelative(x.when, ref);
   if (fromWhen) return { ...x, date: fromWhen, date_computed: true };
   const fromQuote = resolveRelative(x.quote, ref);
-  // A date with no number behind it can only have been worked out, so the student is asked to confirm it.
+  // no number in the text means it was worked out, so ask the student to confirm
   if (!fromQuote) return x.date && !/\d/.test(`${x.when} ${x.quote}`) ? { ...x, date_computed: true } : x;
   if (!x.date || x.date === fromQuote) return { ...x, date: fromQuote, date_computed: true };
-  // The model chose another day. With no number in sight it can only have got the arithmetic wrong;
-  // with one ("mañana les digo, es para el 13") the model read an actual date, so it stands.
+  // Model picked another day. No number: its math was wrong.
+  // With a number ("mañana les digo, es para el 13") it read a real date, keep it.
   return /\d/.test(`${x.when} ${x.quote}`) ? x : { ...x, date: fromQuote, date_computed: true };
 }
 

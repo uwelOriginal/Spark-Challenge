@@ -2,24 +2,21 @@ import type { Glyph } from "./glyphs";
 import type { Chat, Theme } from "./schemas";
 import type { Accent, Font, Layout, Settings, TextSize, Theme as ColorTheme } from "./store";
 
-// Interest-based personalization (docs/15_interest_personalization.md).
-//
-// Two layers: the literal layer (summary, quotes, deadlines) is extracted from the sources and
-// never changes. The interest layer (themed names, groups, analogies, figures) is generated on
-// top of it and checked here, in code, so it can only relabel what is already there.
+// Personal layer (docs/15). Literal facts never change. Themed names, groups, analogies and figures
+// are generated on top and checked here, so they can only relabel what's already there.
 
 export const PACK_IDS = ["football", "basketball", "music", "videogames", "space", "trains", "animals", "art", "generic"] as const;
 export type PackId = (typeof PACK_IDS)[number];
 
-export type Depth = "off" | "light" | "full"; // light: visuals and themed names; full: also analogies
+export type Depth = "off" | "light" | "full"; // full adds analogies
 export type Motion = "off" | "calm" | "full";
 
 export type Pack = {
   id: PackId;
   label: { es: string; en: string };
-  hue: number; // colour of the pack's pictures, adapted to each theme in CSS
-  glyphs: Glyph[]; // preferred pictures, first one is the pack's symbol
-  finish: Glyph; // the end of the journey on the board
+  hue: number;
+  glyphs: Glyph[]; // first is the pack's symbol
+  finish: Glyph;
   keywords: string[];
 };
 
@@ -35,7 +32,6 @@ export const PACKS: Record<PackId, Pack> = {
   generic: { id: "generic", label: { es: "General", en: "General" }, hue: 210, glyphs: ["star", "target", "lightbulb", "puzzle", "book"], finish: "trophy", keywords: [] },
 };
 
-/** Best pack for a free-text interest ("me gusta el fútbol y el Real Madrid" → football). */
 export function guessPack(interest: string): PackId {
   const text = interest.toLowerCase();
   if (!text.trim()) return "generic";
@@ -52,7 +48,6 @@ export function isActive(s: Pick<Settings, "interest" | "depth">): boolean {
   return s.depth !== "off" && s.interest.trim().length > 0;
 }
 
-/** Pack to draw with: the student's choice, or the AI's pick when set to automatic. */
 export function packFor(s: Pick<Settings, "interest" | "pack">, themed?: { pack: PackId } | null): Pack {
   if (s.pack !== "auto") return PACKS[s.pack];
   return PACKS[themed?.pack ?? guessPack(s.interest)];
@@ -64,20 +59,20 @@ function hash(text: string): string {
   return (h >>> 0).toString(36);
 }
 
-/** Identifies what a themed layer was made from; a new key means it must be made again. */
+// new key means remake
 export function themeKey(s: Pick<Settings, "interest" | "pack" | "depth" | "lang" | "dialect">, steps: { action: string }[]): string {
   return hash([s.interest.trim().toLowerCase(), s.pack, s.depth, s.lang, s.dialect, ...steps.map((x) => x.action)].join("§"));
 }
 
-// ---------- Checking the interest layer ----------
+// Theme checks
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
 const validIndex = (i: unknown, n: number): i is number => typeof i === "number" && Number.isInteger(i) && i >= 0 && i < n;
 
-// Dates, times, years and percentages: the facts an analogy must never invent.
+// things an analogy must not invent
 const FACT_PATTERN = /\b\d{1,2}:\d{2}\b|\b\d{1,2}[/-]\d{1,2}\b|\b20\d{2}\b|\b\d+(?:[.,]\d+)?\s?%/g;
 
-/** Reasons to ask the next model instead (empty list = good enough). */
+// empty list means it passes
 export function themeProblems(t: Theme, nSteps: number, nDeadlines: number, depth: Depth, facts: string): string[] {
   const problems: string[] = [];
   if (t.step_labels.length !== nSteps) problems.push("labels");
@@ -94,7 +89,7 @@ export function themeProblems(t: Theme, nSteps: number, nDeadlines: number, dept
   return problems;
 }
 
-/** Repair what can be repaired, so the UI never meets a broken reference. */
+// fix what we can so the UI never gets a broken reference
 export function sanitizeTheme(t: Theme, nSteps: number, nDeadlines: number, depth: Depth): Theme {
   const taken = new Set<number>();
   let groups = t.groups
@@ -108,7 +103,7 @@ export function sanitizeTheme(t: Theme, nSteps: number, nDeadlines: number, dept
   if (missing.length > 0) {
     if (groups.length === 0) groups = [{ label: "", icon: "list", steps: missing }];
     else for (const i of missing) {
-      // Put a forgotten step with the group of the step just before it.
+      // forgotten step goes with the previous step's group
       const g = groups.find((x) => x.steps.includes(i - 1)) ?? groups[groups.length - 1];
       g.steps = [...g.steps, i].sort((a, b) => a - b);
     }
@@ -140,7 +135,7 @@ export function sanitizeScene<S extends Theme["scenes"][number]>(s: S, nSteps: n
   };
 }
 
-// ---------- Settings Clara may propose in the chat ----------
+// Settings proposals
 
 export type SettingsChange = Chat["settings_change"];
 
@@ -153,10 +148,7 @@ export const VOICE_RATES = { slow: 0.75, normal: 0.95, fast: 1.15 } as const;
 
 const pick = <T extends string>(allowed: readonly T[], v: unknown): T | undefined => (allowed.includes(v as T) ? (v as T) : undefined);
 
-/**
- * Turn Clara's proposal into a settings patch. Only display and personalization keys are
- * reachable: the student's name, reminders and their data can never be changed by the AI.
- */
+// Only display and personalization keys. The model can't touch name, reminders or data.
 export function changeToPatch(c: SettingsChange | null | undefined, lang: "es" | "en" = "es"): Partial<Settings> {
   if (!c?.wanted) return {};
   const p: Partial<Settings> = {
@@ -177,18 +169,18 @@ export function changeToPatch(c: SettingsChange | null | undefined, lang: "es" |
     p.interest = c.interest.trim().slice(0, 80);
     if (!p.depth) p.depth = "full";
   } else if (p.pack && p.pack !== "auto" && p.pack !== "generic") {
-    // A new theme without new interest text: name the theme, so analogies and chat follow it.
+    // new theme, no new interest text: use the theme's name
     p.interest = PACKS[p.pack].label[lang];
   }
   return Object.fromEntries(Object.entries(p).filter(([, v]) => v !== undefined)) as Partial<Settings>;
 }
 
-/** The current values of the keys a patch touches: what "Undo" puts back. */
+// for Undo
 export function undoFor(patch: Partial<Settings>, current: Settings): Partial<Settings> {
   return Object.fromEntries(Object.keys(patch).map((k) => [k, current[k as keyof Settings]])) as Partial<Settings>;
 }
 
-/** What the chat model is told about the student (never their name). */
+// never includes the name
 export function profileFor(s: Settings) {
   return {
     interest: isActive(s) ? s.interest.trim().slice(0, 80) : "",

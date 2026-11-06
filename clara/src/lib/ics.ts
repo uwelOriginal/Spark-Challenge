@@ -1,13 +1,10 @@
-// Calendar interoperability without OAuth:
-//  - buildIcs(): a .ics file the phone's own calendar imports (Google, Apple, Outlook).
-//    Reminders are separate short events, so every calendar app notifies, even ones that ignore VALARM.
-//  - parseIcs(): reads a .ics back (used by the tests to check what buildIcs writes).
+// .ics files, no OAuth. Reminders are separate short events because some apps ignore VALARM.
 
 export type CalEvent = { uid: string; title: string; description: string; start: Date; end: Date; allDay: boolean };
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-/** Local "floating" time (the student's device time zone). */
+// floating time: the device's time zone
 function icsLocal(d: Date): string {
   return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
 }
@@ -17,14 +14,13 @@ function icsDate(d: Date): string {
 function esc(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
 }
-/** RFC 5545 line folding at 75 octets (approximated by characters). */
+// RFC 5545 folding, approximated by characters
 function fold(line: string): string {
   const out: string[] = [];
   for (let i = 0; i < line.length; i += 73) out.push((i ? " " : "") + line.slice(i, i + 73));
   return out.join("\r\n");
 }
 
-/** One event as a Google Calendar "add" link: works in any browser, with no file and no sign-in step of ours. */
 export function googleCalendarLink(e: CalEvent): string {
   const stamp = e.allDay ? icsDate : icsLocal;
   const q = new URLSearchParams({ action: "TEMPLATE", text: e.title, dates: `${stamp(e.start)}/${stamp(e.end)}`, details: e.description });
@@ -55,14 +51,13 @@ export function buildIcs(events: CalEvent[]): string {
   return lines.join("\r\n");
 }
 
-/** Date from YYYY-MM-DD and optional HH:MM in the device's local time. */
 export function localDate(date: string, time: string | null): Date {
   const [y, m, d] = date.split("-").map(Number);
   const [hh, mm] = (time ?? "00:00").split(":").map(Number);
   return new Date(y, m - 1, d, hh || 0, mm || 0);
 }
 
-// ---------- Parsing ----------
+// Parsing
 
 export type FeedItem = { uid: string; title: string; description: string; start: string; url: string | null };
 

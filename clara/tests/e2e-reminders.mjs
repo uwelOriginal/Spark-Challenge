@@ -1,5 +1,5 @@
-// Real-browser, real-AI check of relative dates, reminders, install and Canvas.
-// Usage: npm run build && npm start, then CLARA_URL=http://localhost:3005 node tests/e2e-reminders.mjs <screenshot-dir>
+// Relative dates, reminders, install and Canvas, with real AI.
+// Usage: CLARA_URL=http://localhost:3005 node tests/e2e-reminders.mjs <screenshot-dir>
 import { chromium } from "playwright-core";
 import fs from "node:fs";
 import os from "node:os";
@@ -26,7 +26,7 @@ const day = (n) => {
 const NEW_TASK = /nueva|Nueva|Otra tarea/;
 const browser = await chromium.launch({ channel: "chrome" });
 
-// ---------- Install button on phones ----------
+// Install button
 for (const [label, userAgent, expectText] of [
   ["Android Chrome, before the browser is ready", ANDROID, "menú del navegador"],
   ["iPhone Safari", IPHONE, "Compartir"],
@@ -49,7 +49,7 @@ for (const [label, userAgent, expectText] of [
   await ctx.close();
 }
 
-// One tap on Android once Chrome offers it: the browser's own dialog, not instructions.
+// native dialog on Android once Chrome offers it
 {
   const ctx = await browser.newContext({ userAgent: ANDROID, viewport: { width: 360, height: 740 } });
   const page = await ctx.newPage();
@@ -68,7 +68,7 @@ for (const [label, userAgent, expectText] of [
   await ctx.close();
 }
 
-// ---------- Installable according to Chrome itself ----------
+// Installable according to Chrome
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "clara-e2e-"));
 const ctx = await chromium.launchPersistentContext(dir, { channel: "chrome", viewport: { width: 420, height: 800 }, permissions: ["notifications"] });
 const page = ctx.pages()[0] ?? (await ctx.newPage());
@@ -83,8 +83,8 @@ check("Chrome reports no installability errors", inst.installabilityErrors.lengt
 const man = await cdp.send("Page.getAppManifest");
 check("Manifest parsed with no errors", man.errors.length === 0, JSON.stringify(man.errors).slice(0, 200));
 
-// ---------- "Tarea para mañana", real AI ----------
-// Stops on Clara's own error message too, so a failed read says why instead of timing out.
+// "Tarea para mañana"
+// also stop on Clara's error message instead of timing out
 const readDone = async () => {
   await page.locator(".work-head, .notice-warn").first().waitFor({ timeout: 120000 });
   const warn = page.locator(".notice-warn");
@@ -104,7 +104,7 @@ check("the stored date is tomorrow", stored.some((d) => d.date === day(1)), JSON
 check("the student is told the date was worked out", await page.getByText("Clara calculó la fecha").first().isVisible());
 await page.screenshot({ path: path.join(SHOTS, "tomorrow.png") });
 
-// A vague phrase stays a question, and the student can still set the date by hand.
+// vague phrase stays a question
 await page.locator(".brand").click();
 await page.getByRole("button", { name: NEW_TASK }).click();
 await page.getByRole("button", { name: /Pegar/ }).click();
@@ -119,7 +119,7 @@ await page.waitForTimeout(300);
 check("choosing a date by hand brings the calendar button", await page.getByRole("button", { name: /Agregar a mi calendario/ }).isVisible());
 await page.screenshot({ path: path.join(SHOTS, "date-picked.png") });
 
-// ---------- Settings: notifications, calendar and Canvas are back ----------
+// Settings
 await page.getByRole("button", { name: /Ajustes/ }).click();
 check("Settings has the Canvas link field", await page.locator("#feed").isVisible());
 check("Settings has add-all-dates for the calendar", await page.getByRole("button", { name: /Agregar todas mis fechas/ }).isVisible());
@@ -138,7 +138,7 @@ if (result === "on") {
   console.log("      push service:", new URL(sub).hostname);
   await page.screenshot({ path: path.join(SHOTS, "notifications-on.png"), fullPage: false });
 
-  // The real path: server -> Google's push service -> this browser -> service worker -> notification.
+  // real path through Google's push service
   const shown = page.evaluate(async () => {
     const reg = await navigator.serviceWorker.ready;
     for (let i = 0; i < 60; i++) {
@@ -156,7 +156,7 @@ if (result === "on") {
   if (n) check("it shows the reminder text from the device, not generic text", n.title.includes("Recordatorio"), n.title);
 }
 
-// A reminder that comes due is delivered by the server's own clock, with no tap and no test button.
+// due reminder, sent by the server's clock
 if (result === "on") {
   const fired = await page.evaluate(async () => {
     const reg = await navigator.serviceWorker.ready;
@@ -177,7 +177,7 @@ check("the server refuses a push address that is not a push service", blocked ==
 const blockedFeed = await page.evaluate(async () => (await fetch("/api/canvas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: "https://localhost/feeds/calendars/user_x.ics" }) })).status);
 check("the Canvas route refuses internal addresses", blockedFeed === 400, String(blockedFeed));
 
-// ---------- Canvas ----------
+// Canvas
 await page.locator(".brand").click();
 await page.getByRole("button", { name: NEW_TASK }).click();
 await page.getByRole("button", { name: "Canvas" }).click();

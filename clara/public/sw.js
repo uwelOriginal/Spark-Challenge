@@ -1,7 +1,6 @@
-// Service worker: makes Clara installable, keeps the app shell available offline, and shows reminders.
-// API calls always go to the network (nothing about the student's work is cached by fetch here).
+// Install support, offline shell, reminders. API calls always hit the network.
 const CACHE = "clara-shell-v2";
-const REMINDERS = "clara-reminders-v1"; // written by src/lib/notify.ts; the texts never go to the server
+const REMINDERS = "clara-reminders-v1"; // filled by lib/notify.ts
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(["/", "/icons/icon.svg"])));
@@ -30,18 +29,18 @@ async function reminderText(id) {
     const texts = res ? await res.json() : {};
     if (texts[id]) return texts[id];
   } catch {
-    /* fall through to the plain text below */
+    /* use the plain text below */
   }
   return { title: "Clara", body: "Tienes un recordatorio. / You have a reminder.", assignment: "" };
 }
 
-// The push carries only an id. A phone must show something for every push, so there is always a fallback.
+// Push has only an id. Phones must show something for every push, so keep a fallback.
 self.addEventListener("push", (event) => {
   let id = "";
   try {
     id = event.data ? event.data.json().id : "";
   } catch {
-    /* unreadable payload: show the plain text */
+    /* bad payload */
   }
   event.waitUntil(
     reminderText(id).then((r) =>
@@ -56,7 +55,7 @@ self.addEventListener("push", (event) => {
   );
 });
 
-// Tapping a reminder opens Clara on that assignment, reusing an open window when there is one.
+// open the assignment, reuse a window if there is one
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url = (event.notification.data && event.notification.data.url) || "/";

@@ -1,7 +1,5 @@
-// Relative dates ("mañana", "el viernes", "in 3 days") turned into YYYY-MM-DD, in code.
-// The model is asked to do this too, but arithmetic must not depend on the model: this result
-// fills a missing date and corrects a wrong one. Vague phrases ("next week", "pronto") stay
-// unresolved on purpose: they have no single day, so they remain a question for the professor.
+// "mañana", "el viernes", "in 3 days" -> YYYY-MM-DD. The model tries this too, but date math
+// shouldn't depend on it. Vague phrases ("next week") stay unresolved and become a question.
 
 const WEEKDAYS: Record<string, number> = {
   domingo: 0, lunes: 1, martes: 2, miércoles: 3, miercoles: 3, jueves: 4, viernes: 5, sábado: 6, sabado: 6,
@@ -18,7 +16,7 @@ function shift(ref: string, days: number): string {
   return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
 }
 
-/** Text that already names a calendar day ("viernes 13", "Nov 13", "13/11") is not relative. */
+// "viernes 13", "Nov 13", "13/11" are not relative
 function hasCalendarDay(text: string): boolean {
   return /\b\d{1,2}\s*(de\s+)?(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic|jan|apr|aug|dec)[a-z]*\b/.test(text)
     || /\b(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic|jan|apr|aug|dec)[a-z]*\.?\s+\d{1,2}\b/.test(text)
@@ -26,14 +24,13 @@ function hasCalendarDay(text: string): boolean {
     || new RegExp(`\\b(${Object.keys(WEEKDAYS).join("|")})\\s+\\d{1,2}\\b`).test(text);
 }
 
-/** The day `text` refers to, counted from `ref` (YYYY-MM-DD), or null when it names no single day. */
 export function resolveRelative(text: string | null | undefined, ref: string): string | null {
   if (!text || !/^\d{4}-\d{2}-\d{2}$/.test(ref)) return null;
   const s = text.toLowerCase().replace(/\s+/g, " ");
   if (hasCalendarDay(s)) return null;
 
   if (/\b(pasado mañana|pasado manana|day after tomorrow)\b/.test(s)) return shift(ref, 2);
-  // In Spanish "mañana" is also "morning": "por la mañana", "de la mañana", "esta mañana" are not tomorrow.
+  // "por la mañana" means morning, not tomorrow
   if (/\btomorrow\b/.test(s) || /(?<!\b(la|esta|cada|una|toda)\s)\bma[ñn]ana\b/.test(s)) return shift(ref, 1);
   if (/\b(hoy|today|tonight|esta noche)\b/.test(s)) return ref;
 
@@ -47,7 +44,7 @@ export function resolveRelative(text: string | null | undefined, ref: string): s
   if (named && !/\b(cada|todos los|every)\b/.test(s)) {
     const [y, m, d] = ref.split("-").map(Number);
     const from = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
-    return shift(ref, (WEEKDAYS[named[1]] - from + 7) % 7 || 7); // the next one, never today
+    return shift(ref, (WEEKDAYS[named[1]] - from + 7) % 7 || 7); // never today
   }
   return null;
 }

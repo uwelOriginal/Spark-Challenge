@@ -42,6 +42,6 @@
 
 The idea survives; the case as charged does not. Restate it as Clara Lite, owned by people you name today. Write a consent plan before any Neurosurfer touches it. No payer can sign before Nov 5, so pitch the business as a hypothesis.
 
-_The full trial is in C:\Users\hgper\Documents\Github\Spark-Challenge\.court\20261027-180315: the opening statements, the rebuttals and every juror's vote._
+_The full transcript is kept privately by the team._
 
 _Made with [/court](https://github.com/alexyc9381/court-skill), a free Claude Code skill by Alex Chen ([@nocodealex](https://instagram.com/nocodealex))._

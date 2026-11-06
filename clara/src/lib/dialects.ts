@@ -1,8 +1,6 @@
 import type { Lang } from "./schemas";
 
-// Regional variants inside each UI language. Shared by client and server.
-// A dialect changes three things: how dates are written, which device voice reads aloud,
-// and which regional variant the AI writes in. UI labels stay in neutral Spanish / English.
+// Regional variants: date format, reading voice and AI wording. UI labels stay neutral.
 
 export const DIALECTS: Record<Lang, { id: string; label: string; ai: string }[]> = {
   es: [
@@ -23,12 +21,11 @@ export function defaultDialect(lang: Lang): string {
   return DIALECTS[lang][0].id;
 }
 
-/** A dialect that belongs to the language, or the language's default. */
 export function validDialect(lang: Lang, dialect: unknown): string {
   return DIALECTS[lang].some((d) => d.id === dialect) ? (dialect as string) : defaultDialect(lang);
 }
 
-/** The "Output language: ..." value the prompts receive. Untrusted input is whitelisted. */
+// whitelisted, free text never reaches the prompt
 export function outputLanguage(lang: unknown, dialect: unknown): string {
   const l: Lang = lang === "en" ? "en" : "es";
   const id = validDialect(l, dialect);

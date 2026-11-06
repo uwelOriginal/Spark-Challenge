@@ -10,18 +10,17 @@ import { errorText, Icon, Notice } from "../ui";
 import { Glyph } from "./Glyph";
 import { Board, SceneView } from "./Scene";
 
-// The interest layer in the work view (docs/15). The literal tasks stay where they are; this adds
-// a board, themed names and groups, analogies and figures, all made from the student's interest.
+// Personal layer on top of the literal tasks, which stay as they are.
 
 type Base = { a: Assignment; t: Strings; settings: Settings };
 
-/** Makes (or remakes) the themed layer whenever the interest, depth, pack or steps change. */
+// remake when interest, depth, pack or steps change
 export function useTheme(a: Assignment, settings: Settings, voice: Voice, onUpdate: (a: Assignment) => void) {
   const want = isActive(settings) ? themeKey(settings, a.decode.steps) : null;
   const latest = useRef(a);
   latest.current = a;
   const tried = useRef<string | null>(null);
-  const force = useRef(false); // "Rehacer": make it again even though the saved theme is current
+  const force = useRef(false); // "Rehacer" ignores the saved theme
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [attempt, setAttempt] = useState(0);
@@ -35,7 +34,7 @@ export function useTheme(a: Assignment, settings: Settings, voice: Voice, onUpda
     setBusy(true);
     setError(null);
     makeTheme(latest.current, settings, voice)
-      // Merge into the latest copy: the student may tick steps while the theme is being made.
+      // merge: steps may have been ticked meanwhile
       .then((themed) => live && onUpdate({ ...latest.current, themed }))
       .catch((e) => live && setError(e))
       .finally(() => live && setBusy(false));
@@ -54,11 +53,10 @@ export type ThemeState = ReturnType<typeof useTheme>;
 
 const packName = (p: Pack, t: Strings) => p.label[t.locale.startsWith("en") ? "en" : "es"];
 
-/** What the analogies are "in terms of": a pack the student chose wins over older interest text. */
+// a chosen pack wins over older interest text
 const themeName = (s: Settings, pack: Pack, t: Strings) =>
   s.pack !== "auto" && s.pack !== "generic" && guessPack(s.interest) !== s.pack ? packName(pack, t) : s.interest.trim() || packName(pack, t);
 
-/** First visit: ask what the student likes, once. Dismissing it is remembered. */
 export function InterestCard({ t, onSettings }: { t: Strings; onSettings: (p: Partial<Settings>) => void }) {
   const [text, setText] = useState("");
   const use = (interest: string) => interest.trim() && onSettings({ interest: interest.trim().slice(0, 80), interestAsked: true });
@@ -79,7 +77,6 @@ export function InterestCard({ t, onSettings }: { t: Strings; onSettings: (p: Pa
   );
 }
 
-/** Top of the tasks panel: the board, the score and the intro in the student's interest. */
 export function StudioHero({ a, t, settings, theme, onUpdate, onSettings, onOpenSettings }: Base & { theme: ThemeState; onUpdate: (a: Assignment) => void; onSettings: (p: Partial<Settings>) => void; onOpenSettings: () => void }) {
   const d = a.decode;
   const pack = packFor(settings, theme.current ? a.themed : null);
@@ -122,7 +119,6 @@ export function StudioHero({ a, t, settings, theme, onUpdate, onSettings, onOpen
   );
 }
 
-/** The checklist, grouped into the theme's phases; the literal step stays the main text. */
 export function GroupedSteps({ a, t, settings, onUpdate }: Base & { onUpdate: (a: Assignment) => void }) {
   const d = a.decode;
   const themed = a.themed!;
@@ -148,7 +144,6 @@ export function GroupedSteps({ a, t, settings, onUpdate }: Base & { onUpdate: (a
   );
 }
 
-/** Analogies (with where they stop matching) and the AI's figures. */
 export function StudioExtras({ a, t, settings }: Base) {
   const themed = a.themed!;
   const pack = packFor(settings, themed);
@@ -184,7 +179,7 @@ export function StudioExtras({ a, t, settings }: Base) {
   );
 }
 
-// ---------- Settings proposals from the chat ----------
+// Settings proposals
 
 function valueLabel(t: Strings, key: keyof Settings, v: unknown): string {
   const lists: Partial<Record<keyof Settings, Record<string, string>>> = {
@@ -196,11 +191,11 @@ function valueLabel(t: Strings, key: keyof Settings, v: unknown): string {
     return t.voiceRates[rate];
   }
   if (key === "pack") return v === "auto" ? t.packAuto : packName(PACKS[v as keyof typeof PACKS], t);
-  if (key === "interest") return String(v || "—");
+  if (key === "interest") return String(v || "-");
   return lists[key]?.[String(v)] ?? String(v);
 }
 
-/** "Clara suggests: theme dark → light [Apply] [No]". Nothing changes until the student says so. */
+// nothing changes until the student applies it
 export function ChangeCard({ m, t, settings, onDecide }: { m: ChatTurn; t: Strings; settings: Settings; onDecide: (turn: ChatTurn, patch: Partial<Settings>) => void }) {
   const patch = changeToPatch(m.result?.settings_change, settings.lang);
   const keys = Object.keys(patch) as (keyof Settings)[];

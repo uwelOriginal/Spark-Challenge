@@ -1,48 +1,59 @@
-# 11 — Code Walkthrough (for human review and the Nov 7–10 code review)
+# 11: Code Walkthrough (for human review and the code review)
 
-The rules require a human who can **review, explain, and validate all submitted code**. Read this file, then open each file in the order listed. The whole app is about 900 lines.
+The rules require a human who can **review, explain and validate all submitted code**. Read this file, then open each file in the order listed. Note your name in `clara/ATTRIBUTION.md` only after you have actually done it. The app is about 6,700 lines.
 
 ## 1. One request, end to end
+
+See [`diagrams/03-decode-sequence.png`](diagrams/03-decode-sequence.png). In short:
+
 ```
-Student pastes text ──► ClaraApp.tsx  decode()  ──POST /api/decode {text, lang}──►  route.ts
-                                                                                  │ guard(): access code, rate limit, size
-                                                                                  │ structured(DecodeSchema, DECODE_SYSTEM, text)   ◄── llm.ts
-                                                                                  │      └─ Anthropic API, structured output (zod schema)
-                                                                                  │ checkDecode(text, result)                        ◄── verify.ts
-                                                                                  ▼      └─ marks each quote verified / not found
-ClaraApp.tsx renders 6 sections ◄────────────── JSON {..., verified flags, quote_check}
+Student taps Read ─► lib/actions.ts ─► lib/api.ts ─POST /api/decode─► route.ts
+                                                                       │ guard(): access code, rate limit
+                                                                       │ readSources(), fence(): validate, neutralize tags
+                                                                       │ routeStructured(): Groq, then Anthropic
+                                                                       │    accept(): at least 85% of quotes found?
+                                                                       │ checkDecode(): verified flags, weekday check
+UI renders tasks and quotes; store.ts saves on the device ◄── JSON ────┘  (nothing stored on the server)
 ```
 
 ## 2. Files, in reading order
 
 | # | File | What it does | The one thing to be able to explain |
 |---|---|---|---|
-| 1 | `src/lib/schemas.ts` | Defines the exact JSON shape the AI must return (zod). | The schema is the contract. The model **cannot** return a different shape, because the API enforces it (structured outputs). |
-| 2 | `src/prompts/index.ts` | The 3 system prompts (decode, changes, transcribe) with a version number. | The rules that make Clara literal, make it quote, ban guessing, and ban writing the assignment. This file is also Deliverable #5 (the PDF of prompts). |
-| 3 | `src/lib/llm.ts` | The **only** file that talks to the model. `structured()` returns validated JSON. `transcribe()` turns an image or scanned PDF into text. | Model and effort come from env vars. `fallbacks: "default"` makes the API retry on a fallback model if one refuses. Errors become friendly codes. |
-| 4 | `src/lib/verify.ts` | Checks each quote against the student's text, ignoring spacing, case, and quote-mark style. | **Why it exists:** we don't trust the model's claim that a quote is real; code checks it. That's how "0 invented requirements" becomes measurable. |
-| 5 | `src/lib/guard.ts` | Optional access code, per-IP rate limit, size limits, and tag fencing. | It protects the API bill on a public URL and keeps document text from escaping our `<document>` tags. |
-| 6 | `src/app/api/decode/route.ts` | Validates input, calls `structured()`, then `checkDecode()`. | Nothing is stored. The document only exists during the request. |
-| 7 | `src/app/api/changes/route.ts` | Same pattern for comparing two versions of a brief. | Quotes are checked against **both** versions. |
-| 8 | `src/app/api/extract/route.ts` | A PDF with a text layer is read locally (no AI). A scanned PDF or an image goes to AI transcription. | The student always reviews the extracted text before decoding (user agency). |
-| 9 | `src/lib/templates.ts` | The professor message and mentor summary. **Plain templates, no AI.** | It's predictable on purpose: the student controls the wording, and Clara never sends anything. |
-| 10 | `src/lib/i18n.ts` | All UI text in Spanish and English. | Wording rules: literal, no idioms, no exclamation marks, no guilt. |
-| 11 | `src/components/ClaraApp.tsx` | The whole UI: the input screen and 6 result sections with a "one section at a time" mode. | State lives in React only (no database). Drafts regenerate until the student edits them by hand. |
-| 12 | `src/app/globals.css` | The calm design: muted palette, no animation, 18 px text, large tap targets, dark mode. | The accessibility choices and why we made them. |
-| 13 | `tests/verify.test.ts` | 8 unit tests of the quote checker. | Run with `npm test`. |
-| 14 | `tests/ui-render.mjs` | UI test with the API **intercepted** by a fake response. | It tests layout only, never AI quality. |
-| 15 | `eval/run-eval.mjs` | 8 test cases plus the Clara vs. generic chatbot benchmark, judged blind. | The baseline is the **same model**, so the comparison isolates our design. The limitations are stated in the output. |
-| 16 | `eval/record-demo.mjs` | Records the Spanish demo video with captions, using real AI calls. | No fake outputs. |
+| 1 | `src/lib/schemas.ts` | The JSON shapes the AI must return (zod) | The schema is the contract with the UI, and it is validated again locally |
+| 2 | `src/prompts/index.ts` | All 7 system prompts | Why extraction is literal and explanation may use labelled analogies |
+| 3 | `src/lib/llm.ts`, `groq.ts` | The router, the only path to a model | Cheapest first; what triggers escalation; why a refusal is final |
+| 4 | `src/lib/verify.ts` | Checks quotes, citations, weekday vs. date | We do not trust the model's claim that a quote is real |
+| 5 | `src/lib/guard.ts` | Access code, rate limit, size limits, `fence()` | Why document text cannot close our tags |
+| 6 | `src/app/api/decode`, `chat`, `changes`, `theme` | AI routes | Same pattern: guard, validate, route with `accept`, check |
+| 7 | `src/lib/personal.ts` | Packs, theme checks, settings whitelist | `themeProblems()` and `changeToPatch()`: the model proposes, code limits |
+| 8 | `src/lib/stt.ts`, `transcript.ts`, `api/transcribe` | Short class audio | Whisper has no speakers, so labels are estimated and the student reviews them |
+| 9 | `src/lib/jobs.ts`, `longaudio.ts`, `api/audio-jobs` | Long recordings | Parts, overlap, parallelism, rate-limit waits, map-reduce ([diagram](diagrams/05-whole-class-audio.png)) |
+| 10 | `src/lib/actions.ts` | Every AI flow the UI runs | Components render; this file thinks. Done steps are stored by text |
+| 11 | `src/lib/store.ts` | Local-first state, migration, derived values | Why there is no server database |
+| 12 | `src/lib/ics.ts`, `calendar.ts`, `dates.ts`, `api/calendar`, `api/canvas` | Calendar files, Canvas feed, dates | Why `api/canvas` rejects private addresses (SSRF) |
+| 13 | `src/lib/pushServer.ts`, `notify.ts`, `public/sw.js`, `api/push` | Reminders | The server holds ids and times; texts stay on the phone ([diagram](diagrams/08-reminders-sequence.png)) |
+| 14 | `src/lib/templates.ts`, `i18n.ts`, `dialects.ts` | Wording | Templates, not AI, write the email. The output language is whitelisted |
+| 15 | `src/components/ClaraApp.tsx`, `Home.tsx`, `MaterialInput.tsx`, `Workspace.tsx`, `Wrapup.tsx`, `Settings.tsx`, `ui.tsx`, `InstallButton.tsx` | UI | One `useState` router, one intake component |
+| 16 | `src/components/studio/*` | Boards, figures, background | AI returns data, pictures come from a fixed list, so it never writes markup |
+| 17 | `src/app/globals.css`, `layout.tsx` | Tokens, themes, pre-paint script | Why components never read the theme |
+| 18 | `tests/*.test.ts` | 81 unit tests | Run `npm test` |
+| 19 | `tests/e2e-*.mjs` | Real-browser, real-AI flows | They use real AI quota |
+| 20 | `eval/run-eval.mjs` | 10 test cases and the benchmark | The baseline is the same model, so it isolates the design. Know its limits |
 
-## 3. Likely code-review questions (and honest answers)
-- **"Is this AI-generated?"** It was AI-assisted (Claude Code), under the team's direction. The team owns the design decisions, the prompts, and the review. `clara/ATTRIBUTION.md` lists each module's human owner. *Before Nov 5: each owner makes at least one real change to their module and can walk through it.*
-- **"What does the AI do that a normal app couldn't?"** It reads unstructured instructions, separates what is stated from what is missing, vague, or contradictory, and writes literal steps. Code then **verifies** every quote, and templates (not AI) produce the messages.
-- **"How do you prevent hallucinations?"** Schema-enforced output, a mandatory verbatim quote checked in code, a "never invent requirements" rule, and contradictions flagged rather than resolved. Latest eval: 61/61 quotes verified, 0 invented values (vs. 8 for a generic chatbot).
-- **"Privacy?"** No database, no accounts, no diagnosis question. Documents are processed per request. Keys stay server-side in a git-ignored `.env`.
-- **"Prompt injection?"** The document is fenced as data, and the prompt tells the model to ignore instructions inside it and flag them. Test TC8 passes; the generic chatbot obeyed the injected instruction and wrote the code.
+## 3. Likely code-review questions
+
+- **"Is this AI-generated?"** Yes, most first drafts were, by Claude Code under our direction, and `clara/ATTRIBUTION.md` says so. Be ready to explain what you reviewed and changed yourself.
+- **"What does AI do that normal code could not?"** It reads unstructured instructions and class speech, and separates what is stated from what is missing, vague or contradictory. Code then verifies it. Templates write the messages.
+- **"How do you prevent hallucinations?"** A schema, a mandatory verbatim quote checked in code, a "never invent" rule, and contradictions flagged rather than resolved. It is not perfect: the latest benchmark counted 1 invented value in 5 briefs.
+- **"Privacy?"** No database, accounts or diagnosis question. Sources pass through AI providers during a request. The server keeps only push addresses, ids and times. Keys stay server-side in a git-ignored `.env`.
+- **"Prompt injection?"** Sources are fenced as data and the prompts say to ignore and flag instructions. Test TC8 passes. A sample test is not proof against every attack.
+- **"Why did scores drop between benchmark runs?"** We have not established a cause. See [`16_current_state.md`](16_current_state.md).
+- **"Why not Vercel?"** Long class-audio jobs and large uploads need a long-running server.
 
 ## 4. Changing things safely
-- Prompt wording → edit `src/prompts/index.ts`, bump `PROMPT_VERSION`, run `npm run eval`.
-- Model or cost → set `CLARA_MODEL` (e.g. `claude-sonnet-5-5`) in `.env`, re-run the eval, and compare.
-- New UI text → add it to **both** languages in `i18n.ts`.
-- Always run before a demo: `npm test`, then `npm run build`, then `npm run eval`.
+
+- Prompt wording: edit `src/prompts/index.ts`, bump `PROMPT_VERSION`, run `npm run eval`, rebuild the prompts PDF with `python submission/build_prompts_pdf.py`.
+- Model or cost: set `CLARA_MODEL` or `CLARA_ROUTE`, re-run the eval and compare.
+- New UI text: add it to **both** languages in `i18n.ts`.
+- Before a demo: `npm test`, `npm run build`, then one real-AI browser test. Watch the Groq daily quota.

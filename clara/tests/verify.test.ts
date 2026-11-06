@@ -1,4 +1,3 @@
-// Run: node --test tests/   (Node 24 strips TypeScript types natively)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { quoteFound } from "../src/lib/verify.ts";

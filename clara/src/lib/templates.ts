@@ -1,6 +1,6 @@
 import type { DecodeResult, Lang } from "./schemas";
 
-// Deterministic templates (no AI): predictable wording the student fully controls.
+// No AI here on purpose, the wording should be predictable.
 
 export function professorMessage(
   lang: Lang,

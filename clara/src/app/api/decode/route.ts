@@ -8,12 +8,11 @@ import { checkDecode } from "@/lib/verify";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-// Minimum share of quotes found word for word before an answer is accepted from the free tier.
+// share of quotes that must be found verbatim
 const MIN_VERIFIED = 0.85;
 
-// POST { sources: [{id, kind, name, text}], lang, dialect?, today } -> decoded assignment.
-// Every quote is checked against the source it claims to come from; answers that fail the
-// check are escalated to the next model. Nothing is stored.
+// POST { sources, lang, dialect?, today } -> decoded assignment.
+// Too few verified quotes escalates to the next model.
 export async function POST(req: Request) {
   const blocked = guard(req);
   if (blocked) return blocked;

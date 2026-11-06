@@ -13,10 +13,9 @@ export const maxDuration = 300;
 
 const MAX_BYTES = Number(process.env.CLARA_MAX_LONG_AUDIO_MB ?? 600) * 1024 * 1024;
 
-// POST raw audio body (headers: x-file-name, x-lang) -> { id } of a background job.
-// For whole-class recordings (hours). Needs a long-running Node server: local, Docker or a
-// container host. Serverless hosts cap the request body and the run time.
-// The upload is streamed to a temporary folder that the job deletes when it finishes.
+// POST raw audio (x-file-name, x-lang) -> { id }
+// Long recordings need a long-running server, serverless limits are too low.
+// Streams to a temp folder, the job deletes it at the end.
 export async function POST(req: Request) {
   const blocked = guard(req);
   if (blocked) return blocked;

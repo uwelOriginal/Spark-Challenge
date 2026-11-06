@@ -1,5 +1,4 @@
-// Interest-based personalization: the themed layer may relabel the assignment, never change it,
-// and Clara's settings proposals can only reach display and personalization keys.
+// Themes may relabel an assignment, never change it. Proposals only reach display keys.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { changeToPatch, guessPack, isActive, sanitizeTheme, themeKey, themeProblems, undoFor } from "../src/lib/personal.ts";

@@ -5,8 +5,7 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 // POST multipart { file } -> { text, method }.
-// PDFs with a text layer are read locally (no AI call). Scanned PDFs and images are
-// transcribed by the model. The student always sees and can edit the text before decoding.
+// Text PDFs are read locally. Scans and images go to the model.
 export async function POST(req: Request) {
   const blocked = guard(req);
   if (blocked) return blocked;

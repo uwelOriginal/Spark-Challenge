@@ -5,13 +5,10 @@ import type { Pack, PackId } from "@/lib/personal";
 import type { Scene } from "@/lib/schemas";
 import { Glyph } from "./Glyph";
 
-// The Studio's drawing layer. Everything is drawn from data (a pack id, a list of items), never from
-// markup the AI wrote. Colours come from the pack's hue and adapt to the theme in globals.css.
-// Animation: elements marked data-anim move only when Settings → motion allows it.
+// Drawn from data only, never from markup the model wrote.
 
 const packStyle = (p: Pack) => ({ "--pack-h": p.hue }) as CSSProperties;
 
-/** The pack's field, court, stage... drawn behind the board. */
 function Backdrop({ pack }: { pack: PackId }) {
   const id = useId().replace(/:/g, "");
   const line = { fill: "none", stroke: "var(--line)", strokeWidth: 2 } as const;
@@ -107,16 +104,13 @@ function Backdrop({ pack }: { pack: PackId }) {
 
 export type BoardStep = { label: string; glyph: string; done: boolean };
 
-/**
- * The assignment as a journey across the pack's field: each step is a stop, the finish is the
- * pack's goal. Stops are buttons that tick the step; the numbered legend below says the same in text.
- */
+// Steps as stops on the field. Stops tick the step; the legend repeats them as text.
 export function Board({ pack, steps, title, onToggle, doneLabel }: { pack: Pack; steps: BoardStep[]; title: string; onToggle?: (i: number) => void; doneLabel: string }) {
   const n = steps.length;
   const pos = (i: number) => ({ x: n === 1 ? 40 : 7 + (i * 72) / (n - 1), y: i % 2 ? 68 : 32 });
   const finish = { x: 93, y: 50 };
   const points = [...steps.map((_, i) => pos(i)), finish];
-  const reached = steps.findIndex((s) => !s.done); // index of the first open stop, -1 when all done
+  const reached = steps.findIndex((s) => !s.done); // -1 when all done
   return (
     <figure className="studio-figure">
       <div className="board pack-scope" data-pack={pack.id} style={packStyle(pack)}>
@@ -155,7 +149,6 @@ export function Board({ pack, steps, title, onToggle, doneLabel }: { pack: Pack;
   );
 }
 
-/** A figure the AI described: timeline, flow or cards. Refs to steps and deadlines show their state. */
 export function SceneView({ scene, pack, stepDone, deadlineWhen, doneLabel }: { scene: Scene; pack: Pack; stepDone: (i: number) => boolean; deadlineWhen: (i: number) => string | null; doneLabel: string }) {
   return (
     <figure className="studio-figure scene pack-scope" data-kind={scene.kind} style={packStyle(pack)}>

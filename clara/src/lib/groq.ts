@@ -1,7 +1,6 @@
 import { z } from "zod";
 
-// Groq (OpenAI-compatible API, generous free tier). Plain fetch: no extra SDK.
-// Text with strict JSON schema: openai/gpt-oss-120b. Images: qwen/qwen3.8-27b. Audio: Whisper.
+// Groq's API is OpenAI-compatible, plain fetch is enough.
 
 const BASE = "https://api.groq.com/openai/v1";
 export const GROQ_TEXT_MODEL = process.env.CLARA_GROQ_MODEL ?? "openai/gpt-oss-120b";
@@ -10,11 +9,10 @@ export const GROQ_STT_MODEL = process.env.CLARA_GROQ_STT_MODEL ?? "whisper-large
 
 export const hasGroq = () => Boolean(process.env.GROQ_API_KEY);
 
-/** Thrown for any Groq failure; `retryable` tells the router to try the next provider. */
 export class ProviderError extends Error {
   provider: string;
   kind: "rate_limit" | "unavailable" | "bad_output" | "auth";
-  retryAfter: number | null; // seconds, from the provider's retry-after header on a 429
+  retryAfter: number | null; // seconds
   constructor(provider: string, kind: ProviderError["kind"], detail: string, retryAfter: number | null = null) {
     super(`${provider} ${kind}: ${detail}`);
     this.provider = provider;
@@ -43,10 +41,7 @@ async function call(path: string, init: RequestInit): Promise<Response> {
   return res;
 }
 
-/**
- * Zod -> JSON Schema in the shape Groq's strict mode accepts:
- * every object closed and fully required, nullable fields as type unions.
- */
+// Groq strict mode: closed objects, everything required, nullable as type unions.
 export function strictJsonSchema(schema: z.ZodType): Record<string, unknown> {
   const raw = z.toJSONSchema(schema) as Record<string, unknown>;
   const fix = (node: unknown): unknown => {
@@ -78,7 +73,6 @@ export function strictJsonSchema(schema: z.ZodType): Record<string, unknown> {
   return fix(raw) as Record<string, unknown>;
 }
 
-/** Chat completion constrained to `schema` (strict mode). Returns the validated object. */
 export async function groqStructured<S extends z.ZodType>(schema: S, system: string, user: string, name: string, model = GROQ_TEXT_MODEL): Promise<z.infer<S>> {
   const res = await call("/chat/completions", {
     method: "POST",
@@ -107,7 +101,6 @@ export async function groqStructured<S extends z.ZodType>(schema: S, system: str
   return checked.data;
 }
 
-/** Read the text in an image (OCR) with Groq's vision model. */
 export async function groqTranscribeImage(system: string, mediaType: string, base64: string): Promise<string> {
   const res = await call("/chat/completions", {
     method: "POST",
@@ -136,7 +129,7 @@ export async function groqTranscribeImage(system: string, mediaType: string, bas
 
 export type WhisperSegment = { start: number; end: number; text: string };
 
-/** Speech to text with Whisper. Returns timed segments (Whisper does not separate speakers). */
+// Whisper doesn't separate speakers
 export async function groqWhisper(file: File, language?: string, model = GROQ_STT_MODEL): Promise<{ segments: WhisperSegment[]; language: string | null }> {
   const form = new FormData();
   form.append("file", file, file.name || "clase.webm");

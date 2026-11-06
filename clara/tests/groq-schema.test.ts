@@ -1,4 +1,3 @@
-// Groq strict mode needs closed, fully-required objects and nullable fields as type unions.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { strictJsonSchema } from "../src/lib/groq.ts";

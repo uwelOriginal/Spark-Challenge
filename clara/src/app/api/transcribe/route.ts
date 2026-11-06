@@ -4,9 +4,8 @@ import { transcribeAudio } from "@/lib/stt";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-// POST multipart { file: audio, lang? } -> { segments: [{speaker, start, end, text}], language, diarization }.
-// The audio is forwarded to the speech-to-text provider and never stored by Clara.
-// The student then chooses which voices to keep (usually only the professor).
+// POST multipart { file, lang? } -> { segments, language, diarization }.
+// Audio goes to the STT provider and isn't stored here. The student then picks which voices to keep.
 export async function POST(req: Request) {
   const blocked = guard(req);
   if (blocked) return blocked;

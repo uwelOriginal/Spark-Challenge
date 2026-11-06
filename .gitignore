@@ -3,3 +3,9 @@
 raw/wpxeU/
 .playwright-mcp
 .remember
+# Organizer submission paperwork (form transcript, view-only review checklist): keep out of the public repo
+raw/Submission/
+submission/
+# Private working files
+.claude/
+.court/

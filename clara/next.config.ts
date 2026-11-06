@@ -1,10 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Linting is not part of the POC toolchain yet; type-checking still runs on build.
+  // no linter set up yet, build still type-checks
   eslint: { ignoreDuringBuilds: true },
   devIndicators: false,
-  // Keep the ffmpeg binary's real path (bundling would break it).
+  // bundling breaks the ffmpeg binary path
   serverExternalPackages: ["ffmpeg-static"],
 };
 

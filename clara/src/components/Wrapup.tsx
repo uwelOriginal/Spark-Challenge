@@ -6,12 +6,11 @@ import { isDone, teacherQuestions, type Assignment, type Settings } from "@/lib/
 import { mentorSummary, professorMessage } from "@/lib/templates";
 import { CopyButton, FlowSteps, Icon, Notice, Quote } from "./ui";
 
-// Step 3: the two ways out of the work view. Nothing is ever sent for the student:
-// email, WhatsApp and copy are always their own action.
+// Step 3. Nothing gets sent for the student, email and WhatsApp are their own action.
 
 type Props = { a: Assignment; t: Strings; settings: Settings; onUpdate: (a: Assignment) => void; onBack: () => void };
 
-/** A draft that follows its inputs until the student edits it by hand. */
+// regenerates until the student edits it
 function useDraft(draft: string): [string, (s: string) => void] {
   const [text, setText] = useState(draft);
   const [edited, setEdited] = useState(false);

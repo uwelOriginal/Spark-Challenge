@@ -1,7 +1,5 @@
-// End-to-end check of the Studio (interest-based personalization, docs/15) with REAL AI calls.
-// Path: example assignment → pick "Fútbol" in the interest card → themed board, groups, analogies,
-// figures → chat explains with football → Clara proposes settings → apply → undo; then light theme on desktop.
-// Usage: npm run build && npm start, then CLARA_URL=http://localhost:3005 node tests/e2e-studio.mjs <screenshot-dir>
+// Studio with real AI: theme, chat analogies, settings proposals, theme switch.
+// Usage: CLARA_URL=http://localhost:3005 node tests/e2e-studio.mjs <screenshot-dir>
 import { chromium } from "playwright-core";
 
 const BASE = process.env.CLARA_URL ?? "http://localhost:3000";

@@ -1,6 +1,4 @@
-// End-to-end flow with REAL AI calls on a running server (npm run build && npm start).
-// Follows the student's path on a phone: upload (example) → work (tasks + chat, add new material)
-// → ask the professor → finish; then display settings and the desktop side-by-side layout.
+// Full student path with real AI, on a running server.
 // Usage: CLARA_URL=http://localhost:3005 node tests/e2e-flow.mjs <screenshot-dir>
 import fs from "node:fs";
 import { chromium } from "playwright-core";

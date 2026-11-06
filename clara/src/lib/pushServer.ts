@@ -3,24 +3,20 @@ import os from "node:os";
 import path from "node:path";
 import webpush, { type PushSubscription } from "web-push";
 
-// Reminders need a server: a phone only wakes a closed web app when a push arrives.
-// To keep Clara's promise that the student's work is not stored here, this queue holds only the
-// browser's push address, an opaque reminder id and a time. The push carries only the id; the
-// service worker on the phone looks up the text (see public/sw.js).
-//
-// The queue is a JSON file, and the app re-sends its reminders every time it opens, so a redeploy
-// that wipes the file heals itself the next time the student opens Clara.
+// A closed web app only wakes on a push, so reminders need a server. To keep student work off it,
+// the queue has only the push address, an opaque id and a time. See public/sw.js.
+// JSON file. The app re-sends reminders on open, so a wiped file recovers.
 
 export type Reminder = { id: string; at: number };
 type Entry = { subscription: PushSubscription; reminders: Reminder[]; lang: string };
 
 const FILE = path.join(process.env.CLARA_DATA_DIR || os.tmpdir(), "clara-push.json");
 const TICK_MS = 30_000;
-const TOO_LATE_MS = 12 * 60 * 60_000; // a reminder this late is noise: skip it
+const TOO_LATE_MS = 12 * 60 * 60_000; // too late to be useful
 const MAX_SUBSCRIPTIONS = 5_000;
 export const MAX_REMINDERS = 60;
 
-// The browser hands us this address, and the server then calls it: only real push services are allowed.
+// we call this address, so only allow real push services
 const PUSH_HOSTS = [/^fcm\.googleapis\.com$/, /^android\.googleapis\.com$/, /(^|\.)push\.apple\.com$/, /(^|\.)push\.services\.mozilla\.com$/, /(^|\.)notify\.windows\.com$/];
 
 export function validEndpoint(endpoint: unknown): endpoint is string {
@@ -38,7 +34,7 @@ export function validSubscription(s: unknown): s is PushSubscription {
   return !!sub && validEndpoint(sub.endpoint) && typeof sub.keys?.p256dh === "string" && typeof sub.keys?.auth === "string" && sub.keys.p256dh.length < 200 && sub.keys.auth.length < 100;
 }
 
-// Route handlers and instrumentation can be separate bundles: one queue per process, on globalThis.
+// routes and instrumentation can be separate bundles, so keep it on globalThis
 type Shared = { queue: Map<string, Entry>; timer?: ReturnType<typeof setInterval>; loaded: boolean };
 const g = globalThis as typeof globalThis & { __claraPush?: Shared };
 const shared: Shared = (g.__claraPush ??= { queue: new Map(), loaded: false });
@@ -49,7 +45,7 @@ function loadOnce() {
   try {
     for (const e of JSON.parse(fs.readFileSync(FILE, "utf8")) as Entry[]) shared.queue.set(e.subscription.endpoint, e);
   } catch {
-    /* first run, or the file was wiped: the app re-sends its reminders when it opens */
+    /* first run or wiped file */
   }
 }
 
@@ -69,7 +65,6 @@ export function publicKey(): string | null {
   return process.env.VAPID_PUBLIC_KEY || null;
 }
 
-/** Sends one push. Returns "gone" when the browser no longer wants pushes at this address. */
 export async function sendPush(subscription: PushSubscription, id: string): Promise<"sent" | "gone" | "failed"> {
   webpush.setVapidDetails(process.env.VAPID_SUBJECT || "https://github.com/uwelOriginal/Spark-Challenge", process.env.VAPID_PUBLIC_KEY!, process.env.VAPID_PRIVATE_KEY!);
   try {
@@ -83,7 +78,7 @@ export async function sendPush(subscription: PushSubscription, id: string): Prom
   }
 }
 
-/** Replace everything scheduled for this browser. An empty list keeps the address for the test button. */
+// empty list keeps the address for the test button
 export function schedule(subscription: PushSubscription, reminders: Reminder[], lang: string) {
   loadOnce();
   if (!shared.queue.has(subscription.endpoint) && shared.queue.size >= MAX_SUBSCRIPTIONS) return false;

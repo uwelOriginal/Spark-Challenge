@@ -2,18 +2,15 @@ import type { CSSProperties, ReactNode } from "react";
 import type { Pack, PackId } from "@/lib/personal";
 import { Glyph } from "./Glyph";
 
-// Background pictures of the student's theme, behind the whole page (Settings → "Dibujos de fondo",
-// or "Quitar fondo" in the Studio). Faint, fixed, never animated, never clickable, hidden from screen
-// readers; panels stay solid on top, so text contrast does not change.
+// Faint fixed pictures behind the page. Hidden from screen readers, panels stay solid so contrast holds.
 
-// Fixed spots (percent of the viewport, px size, degrees): mostly near the edges, where there is no text.
+// x%, y%, px, deg. Near the edges, away from text.
 const SPOTS: [number, number, number, number][] = [
   [3, 14, 64, -12], [94, 10, 52, 14], [8, 38, 40, 8], [91, 33, 72, -6], [2, 62, 56, 18], [96, 58, 44, -16],
   [6, 86, 70, 6], [89, 82, 58, 10], [48, 4, 36, -8], [27, 94, 40, 12], [70, 95, 48, -10], [15, 24, 30, 20],
   [82, 22, 30, -20], [12, 74, 34, -4], [86, 68, 32, 8], [60, 88, 30, 16],
 ];
 
-/** One large faint motif per theme, in the bottom corner: the field's lines, a stave, an orbit... */
 function Motif({ pack, className = "decor-motif" }: { pack: PackId; className?: string }) {
   const s = { fill: "none", stroke: "currentColor", strokeWidth: 3 } as const;
   const art: Record<PackId, ReactNode> = {
@@ -34,7 +31,6 @@ function Motif({ pack, className = "decor-motif" }: { pack: PackId; className?: 
   );
 }
 
-/** The same motif as a watermark in a panel's corner, behind its text (too faint to affect contrast). */
 export function PanelMotif({ pack }: { pack: Pack }) {
   return (
     <span className="panel-motif pack-scope" style={{ "--pack-h": pack.hue } as CSSProperties} aria-hidden="true">

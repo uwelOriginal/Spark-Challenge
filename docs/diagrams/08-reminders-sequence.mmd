@@ -1,0 +1,18 @@
+sequenceDiagram
+    actor S as Student
+    participant B as Installed PWA
+    participant C as Service worker cache
+    participant A as /api/push
+    participant Q as Server queue
+    participant P as Browser push service
+
+    S->>B: Turn on reminders in Settings
+    B->>P: Subscribe with the VAPID public key
+    P-->>B: Push address
+    B->>C: Save reminder texts on the device
+    B->>A: Push address, opaque ids and times only
+    A->>Q: Store
+    Note over Q: Assignment text never reaches the server
+    Q->>P: At the due time, wake the device with the id
+    P->>C: Service worker wakes up
+    C-->>S: Looks up the text, shows the notification

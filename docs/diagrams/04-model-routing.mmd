@@ -1,0 +1,17 @@
+flowchart TD
+    A["AI task: decode, chat, changes,<br/>theme, speakers, class extract"] --> B{"Groq key set and<br/>in CLARA_ROUTE?"}
+    B -->|yes| C["Groq free tier<br/>gpt-oss-120b, strict JSON"]
+    B -->|no| E
+    C -->|rate limit or error| E{"Anthropic key set and<br/>in CLARA_ROUTE?"}
+    C -->|parsed answer| D{"Clara's own check<br/>quotes · citations · theme rules"}
+    D -->|pass| OK["Return answer<br/>log provider, never content"]
+    D -->|fail| E
+    E -->|yes| F["Anthropic<br/>claude-sonnet-5-5"]
+    E -->|no| H{"Any answer<br/>parsed earlier?"}
+    F -->|parsed answer| G{"Same check"}
+    G -->|pass| OK
+    G -->|fail| H
+    F -->|rate limit or error| H
+    F -->|model refused| X["Show a calm error<br/>a refusal is final"]
+    H -->|yes| LG["Return best parsed answer<br/>UI marks unverified items with !"]
+    H -->|no| BUSY["Show 'try again in a minute'"]

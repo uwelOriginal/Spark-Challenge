@@ -224,7 +224,7 @@ sequenceDiagram
 | Contrast script (all themes × accents) | 72/72 pairs pass, min 5.6:1 |
 | Browser console | 0 errors, 0 warnings |
 
-**Not verified:** `tests/e2e-long-class.mjs` (updated to the new UI but not run: needs a long recording), screen-reader testing with real NVDA/VoiceOver, and testing with students from the partner program. `eval/record-demo.mjs` still drives the v2 UI and must be updated before re-recording the demo video.
+**Not verified:** `tests/e2e-long-class.mjs` (updated to the new UI but not run: needs a long recording), screen-reader testing with real NVDA/VoiceOver, and testing with students from the partner program. (`eval/record-demo.mjs`, which drove the v2 UI, was later removed; the demo videos are now made outside the repo.)
 
 ## 8. Open decisions for the team
 

@@ -1,0 +1,39 @@
+flowchart TB
+    subgraph Device["Student device (PWA)"]
+      UI["React UI<br/>Upload → Work → Professor or Finish"]
+      LS[("localStorage<br/>assignments, sources, chats, settings")]
+      SW["Service worker<br/>reminder texts stay in its cache"]
+      UI <--> LS
+      UI --> SW
+    end
+
+    subgraph Server["Next.js container: no DB, no accounts"]
+      G["guard.ts<br/>access code · rate limit · size limits · tag fencing"]
+      R1["/api/extract · /api/transcribe · /api/audio-jobs<br/>documents and audio → text"]
+      R2["/api/decode · /api/chat · /api/changes · /api/theme<br/>structured AI answers"]
+      R3["/api/canvas · /api/calendar · /api/push<br/>feeds, calendar files, reminders"]
+      V["verify.ts · personal.ts<br/>checks every AI answer in code"]
+      L["llm.ts · stt.ts<br/>the only files that call a model"]
+      Q[("Reminder queue (JSON file)<br/>push address, opaque ids, times")]
+      G --> R1 & R2 & R3
+      R2 --> V
+      V --> L
+      R1 --> L
+      R3 --> Q
+    end
+
+    subgraph Providers["AI providers"]
+      GQ["Groq (free tier, tried first)<br/>gpt-oss-120b · qwen vision · Whisper"]
+      AN["Anthropic (escalation)<br/>claude-sonnet-5-5"]
+      EL["ElevenLabs Scribe<br/>optional, off by default"]
+    end
+
+    Canvas["Canvas calendar feed<br/>(the student's own URL)"]
+    Push["Browser push service"]
+
+    UI -->|HTTPS, per request, nothing stored| G
+    L --> GQ
+    L -->|rate limit, error, failed check| AN
+    L -.-> EL
+    R3 --> Canvas
+    Q --> Push --> SW

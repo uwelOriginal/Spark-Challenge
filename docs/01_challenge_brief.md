@@ -1,4 +1,4 @@
-# 01 — Challenge Brief (source of truth for rules & deadlines)
+# 01: Challenge Brief (source of truth for rules & deadlines)
 
 Transcribed from `raw/Kickoff/*` plus the public pages linked at the bottom. If something here conflicts with an organizer message on Discord, the organizer wins. Update this file when that happens.
 
@@ -102,6 +102,10 @@ Transcribed from `raw/Kickoff/*` plus the public pages linked at the bottom. If 
 - ⚠️ **To compete in the Phoenix final, at least one team member must hold a valid US visa.** Check now.
 - There are 20 Monterrey teams, split between two themes: *Empleabilidad* (Specialisterne, Kairós) and **Socioemocional (Surfeando la Neurodiversidad)**.
 - ⚠️ **Team size:** our team has **3** members. The kickoff slides say 3–5, but the handbook says 4–5. The team was accepted and assigned, so the risk is low, but **confirm in the Teams channel** to rule out a disqualification surprise.
+
+## Technical code review (one-pager in `raw/Submission/`, git-ignored)
+
+Four areas: authentic, collaborative, iterative history; purposeful code the team can explain; documentation that discloses external and AI help; code that matches the demo, considers the user and exposes no secrets. Audit: `submission/README.md`.
 
 ## Open questions for organizers / team
 

@@ -1,8 +1,7 @@
 import type { ReactNode } from "react";
 import { isGlyph, type Glyph as GlyphName } from "@/lib/glyphs";
 
-// One outline drawing per name in lib/glyphs.ts, same stroke style as the app's icons.
-// Decorative (aria-hidden): every figure carries its own text and alt description.
+// One drawing per name in lib/glyphs.ts. Decorative, figures carry their own text.
 
 const C = (cx: number, cy: number, r: number) => <circle cx={cx} cy={cy} r={r} />;
 

@@ -4,11 +4,8 @@ import { groqWhisper, hasGroq, ProviderError } from "./groq";
 import { ClaraError, routeStructured } from "./llm";
 import type { Segment } from "./transcript";
 
-// Speech to text, cheapest first. The rest of the app only sees Segment[].
-//  - groq:       Whisper large v3 (free tier). No speaker separation, so an LLM estimates which
-//                segments are the professor from what is said ("estimated"); the student confirms.
-//  - elevenlabs: Scribe v2 with acoustic speaker separation ("acoustic"). Optional, only with a key.
-// CLARA_STT sets the order (default "groq,elevenlabs").
+// Whisper first. It has no speakers, so an LLM guesses from content and the student confirms.
+// ElevenLabs Scribe is optional and separates speakers by sound. CLARA_STT sets the order.
 
 export type Diarization = "acoustic" | "estimated" | "none";
 
@@ -36,7 +33,6 @@ export async function transcribeAudio(file: File, lang?: string): Promise<{ segm
 
 const SpeakerLabels = z.object({ labels: z.array(z.object({ i: z.number(), role: z.enum(["instructor", "other"]) })) });
 
-/** Label Whisper segments as the professor or other voices from their content (cheap model). */
 async function estimateSpeakers(raw: { start: number; end: number; text: string }[]): Promise<{ segments: Segment[]; diarization: Diarization }> {
   if (raw.length === 0) return { segments: [], diarization: "none" };
   try {
@@ -74,7 +70,7 @@ async function elevenlabs(file: File): Promise<{ segments: Segment[]; language: 
   return { segments: groupWords(data.words ?? []), language: data.language_code ?? null, diarization: "acoustic" };
 }
 
-/** Group words into segments: a new segment when the speaker changes or after a 2 s pause. */
+// new segment on a speaker change or a 2 s pause
 function groupWords(words: ScribeWord[]): Segment[] {
   const out: Segment[] = [];
   for (const w of words) {

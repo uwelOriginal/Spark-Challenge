@@ -28,9 +28,8 @@ type Body = {
 const strings = (x: unknown, max: number, len = 300): string[] =>
   Array.isArray(x) ? x.filter((s): s is string => typeof s === "string").slice(0, max).map((s) => s.slice(0, len)) : [];
 
-// POST { assignment: {title, summary[], steps[{action, minutes, done_when}], deadlines[{item, when}], ...}, interest, pack, depth, lang, dialect? }
-// -> the interest layer (docs/15). Works from the decoded result, not the sources: it relabels what was
-// already extracted and checked, and code rejects themes that invent dates or lose steps.
+// POST { assignment, interest, pack, depth, lang, dialect? } -> themed layer.
+// Uses the checked decode, not the raw sources. Themes that lose steps or invent dates get rejected.
 export async function POST(req: Request) {
   const blocked = guard(req);
   if (blocked) return blocked;

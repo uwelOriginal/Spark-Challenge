@@ -3,11 +3,9 @@ import { parseTranscriptFile, speakerStats, transcriptText } from "./transcript"
 import type { Lang } from "./schemas";
 import type { Source } from "./store";
 
-// The built-in example: SYNTHETIC course material (see src/samples/briefs.json).
-// Written brief from Canvas + what the professor said in class (Teams transcript, professor only).
+// Built-in example, synthetic (samples/briefs.json): brief plus class transcript.
 
 export function exampleSources(lang: Lang): Source[] {
-  // English UI gets the English translation of the same synthetic material.
   const sfx = lang === "en" ? "_en" : "";
   const brief = samples.briefs.find((b) => b.id === `etica_v1${sfx}`)!;
   const cls = samples.class_transcripts.find((c) => c.id === `etica_clase${sfx}`)!;

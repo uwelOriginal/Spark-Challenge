@@ -16,7 +16,7 @@ export async function GET(req: Request) {
 // POST { action: "sync", subscription, reminders: [{id, at}], lang } -> replaces this browser's reminders
 // POST { action: "test", subscription, id }                          -> one push, 10 seconds from now
 // POST { action: "remove", endpoint }                                -> forgets this browser
-// Reminder texts never reach this route: only opaque ids and times (see lib/pushServer.ts).
+// Only ids and times come here, never reminder text.
 export async function POST(req: Request) {
   const blocked = guard(req);
   if (blocked) return blocked;

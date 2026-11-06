@@ -10,22 +10,17 @@ import { cutPart, durationOf, planParts } from "./longaudio";
 import { mmss, type Segment } from "./transcript";
 import { normalize, quoteFound } from "./verify";
 
-// Orchestrator for whole-class recordings (2-6 h).
-//   1. split   - ffmpeg cuts 10-minute parts (5 s overlap), 16 kHz mono FLAC, < 25 MB each
-//   2. map     - parts are transcribed in parallel (bounded), rate limits waited out, not failed
-//   3. merge   - segments re-timed to the whole class, overlap dropped
-//   4. extract - a cheap model copies only the coursework passages from each part (in parallel);
-//                every passage is checked word for word against its part, then de-duplicated
-// The student gets the passages as the class source (small, verifiable) and the full transcript to
-// download. Jobs live in memory on a long-running Node server (not serverless) and files are deleted.
+// Long recordings: split with ffmpeg, transcribe parts in parallel, merge, extract coursework
+// passages and check each one against its part. Jobs live in memory, so this needs a long-running
+// server.
 
 const PART_SECONDS = Number(process.env.CLARA_PART_SECONDS ?? 600);
 const OVERLAP_SECONDS = 5;
 const CONCURRENCY = Math.max(1, Number(process.env.CLARA_STT_CONCURRENCY ?? 3));
-// Each Whisper model has its own free-tier limit: when one is rate-limited, the other keeps going.
+// separate rate limits per model, so we alternate
 const WHISPER_MODELS = [...new Set([GROQ_STT_MODEL, "whisper-large-v3", "whisper-large-v3-turbo"])];
 const MAX_WAIT_SECONDS = 20 * 60;
-// Same idea for the passage extraction: two strict-JSON models with separate limits.
+// same for extraction
 const EXTRACT_MODELS = [...new Set([GROQ_TEXT_MODEL, "openai/gpt-oss-120b", "openai/gpt-oss-20b"])];
 
 export type Passage = { time: string; seconds: number; quote: string; topic: string };
@@ -38,7 +33,7 @@ export type AudioJob = {
   parts: number;
   transcribed: number;
   extracted: number;
-  waitingUntil: number | null; // epoch ms while waiting out a free-tier rate limit
+  waitingUntil: number | null; // epoch ms
   error: string | null;
   transcript: string | null;
   passages: Passage[] | null;
@@ -50,7 +45,6 @@ export function getJob(id: string): AudioJob | undefined {
   return store.get(id);
 }
 
-/** Register a job for an audio file already saved on disk, and start it in the background. */
 export function startJob(filePath: string, fileName: string, lang?: string): AudioJob {
   for (const [id, j] of store) if (Date.now() - j.createdAt > 3 * 3600_000) store.delete(id);
   const job: AudioJob = {
@@ -86,7 +80,7 @@ async function run(job: AudioJob, input: string, lang?: string) {
     job.parts = plan.length;
     job.status = "transcribing";
 
-    // 2-3. Transcribe parts in parallel and put each segment back on the class timeline.
+    // transcribe, then shift segments onto the class timeline
     const byPart: Segment[][] = new Array(plan.length);
     await pool(plan, CONCURRENCY, async (p) => {
       const out = path.join(dir, `part_${String(p.index).padStart(3, "0")}.flac`);
@@ -95,14 +89,14 @@ async function run(job: AudioJob, input: string, lang?: string) {
       const { segments } = await whisperWithLimits(job, file, lang);
       byPart[p.index] = segments
         .map((s) => ({ speaker: "class", start: p.start + s.start, end: p.start + s.end, text: s.text }))
-        .filter((s) => p.index === 0 || s.start >= p.keepFrom - 0.5); // drop the overlap already covered
+        .filter((s) => p.index === 0 || s.start >= p.keepFrom - 0.5); // drop overlap
       await fs.rm(out, { force: true });
       job.transcribed++;
     });
     const asText = (segs: Segment[]) => segs.map((s) => `[${mmss(s.start)}] ${s.text}`).join("\n");
     job.transcript = byPart.map(asText).filter(Boolean).join("\n");
 
-    // 4. Extract coursework passages per part, in parallel, free tier first.
+    // extract passages per part
     job.status = "extracting";
     const found: Passage[] = [];
     await pool(byPart.map((segs, i) => ({ i, text: asText(segs) })), CONCURRENCY, async ({ text }) => {
@@ -134,7 +128,6 @@ async function run(job: AudioJob, input: string, lang?: string) {
   }
 }
 
-/** Transcribe one part; on a rate limit switch Whisper model, and if all are limited, wait and retry. */
 async function whisperWithLimits(job: AudioJob, file: File, lang?: string) {
   let failures = 0;
   for (let attempt = 0; attempt < 200; attempt++) {
@@ -145,7 +138,7 @@ async function whisperWithLimits(job: AudioJob, file: File, lang?: string) {
       return r;
     } catch (e) {
       if (e instanceof ProviderError && e.kind === "rate_limit") {
-        // Try the other model first; once every model is limited, wait as long as Groq asks.
+        // try the other model, wait only if both are limited
         if ((attempt + 1) % WHISPER_MODELS.length !== 0) continue;
         await waitFor(job, e.retryAfter ?? 60);
         continue;
@@ -157,10 +150,7 @@ async function whisperWithLimits(job: AudioJob, file: File, lang?: string) {
   throw new ClaraError("busy", "rate limit did not clear");
 }
 
-/**
- * Extract coursework passages from one part. Free tier: alternate between two Groq text models
- * (separate rate limits) and wait only when both are limited. Without Groq, use the normal router.
- */
+// Alternate Groq models, wait when both are limited. Without Groq, use the normal router.
 async function extractWithLimits(job: AudioJob, user: string): Promise<z.infer<typeof ClassPassages>> {
   if (!hasGroq()) {
     for (let attempt = 0; attempt < 60; attempt++) {
@@ -203,7 +193,6 @@ async function waitFor(job: AudioJob, seconds: number) {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Run fn over items with at most n in flight. */
 async function pool<T>(items: T[], n: number, fn: (item: T) => Promise<void>) {
   let next = 0;
   const worker = async () => {

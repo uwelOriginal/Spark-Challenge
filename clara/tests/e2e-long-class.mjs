@@ -1,6 +1,4 @@
-// End-to-end: whole-class audio through the real UI and real AI.
-// Upload a long recording → background job (split, parallel Whisper, passage extraction)
-// → review passages → add as "said in class" → decode with Clara.
+// Whole-class audio through the real UI and real AI.
 // Usage: CLARA_URL=http://localhost:3000 node tests/e2e-long-class.mjs <audio-file> <screenshot-dir>
 import { chromium } from "playwright-core";
 
@@ -16,7 +14,7 @@ const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 
 await page.goto(BASE);
-await page.locator('.drop input[type="file"]').setInputFiles(audio); // first visit lands on Upload
+await page.locator('.drop input[type="file"]').setInputFiles(audio);
 await page.getByText(/Transcribiendo la clase completa|Preparando el audio/).first().waitFor({ timeout: 60_000 });
 log.push(`${secs()}s job started`);
 await page.waitForTimeout(8000);

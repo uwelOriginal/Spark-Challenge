@@ -10,10 +10,8 @@ export const maxDuration = 60;
 
 type Turn = { role: "user" | "assistant"; text: string };
 
-// POST { sources, summary, history: [{role, text}], message, lang, dialect?, profile? } -> grounded answer with checked citations.
-// `profile` (personal.ts profileFor) lets Clara explain through the student's interest and propose settings.
-// An answer citing a sentence that is not in the sources is escalated to the next model.
-// The chat history lives on the student's device; the server keeps nothing.
+// POST { sources, summary, history, message, lang, dialect?, profile? } -> answer with checked citations.
+// A citation not found in the sources escalates to the next model.
 export async function POST(req: Request) {
   const blocked = guard(req);
   if (blocked) return blocked;
@@ -54,7 +52,7 @@ export async function POST(req: Request) {
 
 const PROFILE_KEYS = ["theme", "accent", "font", "text_size", "control_size", "spacing", "layout", "motion", "pack"];
 
-/** Only short known fields reach the prompt: the interest is free text, so it is capped and fenced. */
+// interest is free text: capped and fenced
 function readProfile(raw: unknown): string {
   const p = (raw && typeof raw === "object" ? raw : {}) as { interest?: unknown; depth?: unknown; current?: Record<string, unknown> };
   const interest = typeof p.interest === "string" ? p.interest.trim().slice(0, 80) : "";

@@ -1,4 +1,4 @@
-# 10 — Decision: NotebookLM integration vs. voice-recording input
+# 10: Decision: NotebookLM integration vs. voice-recording input
 
 > **Update (Oct 28):** whole classes (2–6 h) are now supported. A background job splits the recording, transcribes the parts in parallel with Groq Whisper, and extracts only the coursework passages, each verified, for the student to review. Measured: a 66-minute class went from upload to passages in 53 s. See `13_cost_and_routing.md` §2b. The "≤10 min clip" limit below no longer applies. Consent and the professor's permission still do.
 

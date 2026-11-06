@@ -8,7 +8,7 @@ import { checkChanges } from "@/lib/verify";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-// POST { before, after, lang, dialect? } -> what changed, what to do, what stays the same.
+// POST { before, after, lang, dialect? } -> changes, what to do, what stays
 export async function POST(req: Request) {
   const blocked = guard(req);
   if (blocked) return blocked;

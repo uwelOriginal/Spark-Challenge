@@ -1,4 +1,6 @@
-# 06 — Business Model (draft BMC + unit economics)
+# 06: Business Model (BMC source + unit economics)
+
+> The submitted canvas is `submission/Clara_Business_Model_Canvas.pdf`, built by `submission/build_bmc.py`. Prices are hypotheses until the partner coordinator confirms them (H7).
 
 > Sustainability thesis: **institutions pay, students never pay to be supported.** A B2B2C model sells through Student Wellbeing and disability offices, which already buy per-student assistive tech (Genio/Glean is the precedent). It's backed by a free B2C tier that reaches the roughly 2/3 of students who never disclose.
 
@@ -13,7 +15,7 @@
 | **Revenue Streams** | (1) **Program license**: per supported student per year, sold to wellbeing or disability offices. (2) **Campus license** (year 2): all students, priced per enrolled student. (3) **B2C Pro** (freemium). (4) Non-dilutive grants and prizes (Spark finale, accelerators). |
 | **Key Resources** | Prompt and eval IP plus a **golden dataset of real anonymized briefs**. The partner relationship and its credibility. ND co-design network. The team. |
 | **Key Activities** | Product and AI engineering. Evaluation and safety testing every release. Co-design research. Institutional sales and pilots. Privacy compliance. |
-| **Key Partners** | **Surfeando la Neurodiversidad / Tec Student Wellbeing** (pilot, research, distribution). Instructure (Canvas LTI). LLM provider (Anthropic). ND self-advocacy organizations. Spark Center Venture Studio. |
+| **Key Partners** | **Surfeando la Neurodiversidad / Tec Student Wellbeing** (pilot, research, distribution). Instructure (Canvas LTI). LLM providers (Groq first, Anthropic on escalation). ND self-advocacy organizations. Spark Center Venture Studio. |
 | **Cost Structure** | LLM inference (small, see below). Hosting. Team. Compliance and legal (LFPDPPP, FERPA, accessibility audits). Customer success for institutions. |
 
 ## Unit economics (LLM prices verified Oct 27 2026)

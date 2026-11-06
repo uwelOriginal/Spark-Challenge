@@ -2,8 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Atkinson_Hyperlegible, Fira_Sans, Lexend } from "next/font/google";
 import "./globals.css";
 
-// Reading fonts the student can pick in Settings: Atkinson Hyperlegible (Braille Institute, default)
-// and Lexend (designed to reduce visual stress). Fira Sans for headings. Self-hosted at build time.
+// Atkinson is the default, Lexend is the alternative. Fira Sans for headings.
 const atkinson = Atkinson_Hyperlegible({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-atkinson", display: "swap" });
 const lexend = Lexend({ subsets: ["latin"], weight: ["400", "600"], variable: "--font-lexend", display: "swap" });
 const fira = Fira_Sans({ subsets: ["latin"], weight: ["600"], variable: "--font-fira", display: "swap" });
@@ -18,14 +17,13 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#12151c", colorScheme: "dark light" };
 
-// Applies the saved display settings before first paint, so a light-theme or large-text user
-// never sees a flash of the defaults. Mirrors applyDisplay() in ClaraApp.tsx.
+// Apply saved settings before first paint to avoid a flash. Keep in sync with applyDisplay().
 const prepaint = `try{var s=(JSON.parse(localStorage.getItem("clara.v3")||"{}").settings)||{},d=document.documentElement;
 if(s.theme)d.dataset.theme=s.theme;if(s.accent)d.dataset.accent=s.accent;if(s.font)d.dataset.font=s.font;
 if(s.textSize)d.dataset.text=s.textSize;if(s.controlSize)d.dataset.control=s.controlSize;if(s.spacing)d.dataset.spacing=s.spacing;if(s.motion)d.dataset.motion=s.motion;
 if(s.dialect)d.lang=s.dialect}catch(e){}`;
 
-// Chrome can offer installation before React has loaded, so the event is kept here for InstallButton.
+// Chrome may fire this before React loads, InstallButton reads it later.
 const installCapture = `addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__claraInstall=e;dispatchEvent(new Event("clara-install-ready"))})`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

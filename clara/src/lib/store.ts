@@ -6,27 +6,25 @@ import type { Depth, Motion, PackId } from "./personal";
 import { resolveDeadlineDate } from "./verify.ts";
 import type { ChangesResult, ChatResult, DecodeResult, Lang, SourceKind, Themed } from "./schemas";
 
-// Local-first storage: every assignment, chat and setting lives on the student's device
-// (localStorage). No account, no server database. "Delete all my data" wipes it all.
+// Everything lives in localStorage. No account, no server database.
 
 export type Source = {
-  id: string; // S1, S2, ... (stable inside one assignment)
+  id: string; // S1, S2...
   kind: SourceKind;
   name: string;
   text: string;
   method: "paste" | "pdf" | "image" | "audio" | "transcript" | "example" | "canvas";
   addedAt: string;
-  saidOn?: string; // YYYY-MM-DD: the day of the recording or file, when it is older than the upload
+  saidOn?: string; // recording or file date
 };
 
-/** One line of the assignment's conversation. Clara's "what changed" notes live here too. */
 export type ChatTurn = {
   role: "user" | "assistant";
   text: string;
   at: string;
-  result?: ChatResult; // a grounded answer (citations, question for the professor)
-  changes?: ChangesResult; // posted by Clara when new material was added
-  // A settings proposal from Clara (result.settings_change): what the student decided, and what Undo restores.
+  result?: ChatResult;
+  changes?: ChangesResult; // after new material
+  // the student's decision on a settings proposal, and what Undo restores
   decision?: "applied" | "declined" | "undone";
   undo?: Partial<Settings>;
 };
@@ -38,12 +36,12 @@ export type Assignment = {
   finishedAt: string | null;
   sources: Source[];
   decode: DecodeResult;
-  done: string[]; // actions of the steps already done (text survives a re-decode, indexes do not)
-  picked: number[]; // ambiguity indexes included in the message to the professor
-  extraQuestions: string[]; // questions added from the chat
+  done: string[]; // step text, since indexes change on a re-decode
+  picked: number[]; // ambiguity indexes for the professor email
+  extraQuestions: string[];
   chat: ChatTurn[];
   profName: string;
-  themed?: Themed; // the interest layer (docs/15), remade when the interest or the steps change
+  themed?: Themed;
 };
 
 export type Theme = "dark" | "light" | "contrast";
@@ -54,29 +52,29 @@ export type Layout = "side" | "swap" | "stacked" | "tabs";
 
 export type Settings = {
   lang: Lang;
-  dialect: string; // es-MX, en-GB, ... see dialects.ts
+  dialect: string; // see dialects.ts
   studentName: string;
-  // Display and accessibility
+  // display
   theme: Theme;
   accent: Accent;
   font: Font;
   textSize: TextSize;
   controlSize: "m" | "l" | "xl";
   spacing: "normal" | "relaxed";
-  layout: Layout; // where tasks and chat sit in the work view
-  voiceRate: number; // read-aloud speed, 0.7 – 1.2
-  // Personalization (docs/15): explain and draw the work through what the student loves
-  interest: string; // free text, e.g. "fútbol, el Real Madrid"
-  pack: PackId | "auto"; // picture pack; auto = guessed from the interest
+  layout: Layout;
+  voiceRate: number; // 0.7 to 1.2
+  // personalization
+  interest: string; // free text
+  pack: PackId | "auto";
   depth: Depth;
   motion: Motion;
-  interestAsked: boolean; // the "what do you like?" card was answered or dismissed
-  decor: boolean; // faint theme pictures behind the page
-  // Calendar reminders
+  interestAsked: boolean;
+  decor: boolean;
+  // reminders
   reminderDays: number[];
-  reminderTime: string; // HH:MM
-  notifications: boolean; // the student turned on push reminders on this device
-  canvasFeedUrl: string; // Canvas calendar feed; stays on this device, read only when asked
+  reminderTime: string;
+  notifications: boolean;
+  canvasFeedUrl: string;
 };
 
 type State = { assignments: Assignment[]; settings: Settings };
@@ -108,7 +106,7 @@ export const DEFAULT_SETTINGS: Settings = {
   canvasFeedUrl: "",
 };
 
-/** v2 kept done steps as indexes, a separate changes log and undecoded drafts. */
+// v2 stored done steps as indexes, plus a changes log and drafts
 function migrate(old: { assignments?: unknown[]; settings?: Partial<Settings> }): State {
   const assignments = (old.assignments ?? [])
     .filter((a): a is Record<string, any> => !!a && typeof a === "object" && !!(a as any).decode)
@@ -143,12 +141,12 @@ function load(): State {
     const old = localStorage.getItem(OLD_KEY);
     if (old) return migrate(JSON.parse(old));
   } catch {
-    /* storage blocked or corrupted: start empty */
+    /* blocked or corrupted */
   }
   return { assignments: [], settings: DEFAULT_SETTINGS };
 }
 
-/** Assignments read before relative dates were understood: work the date out from when they were created. */
+// older assignments: work out relative dates from createdAt
 function withRelativeDates(a: Assignment): Assignment {
   const created = new Date(a.createdAt);
   const day = `${created.getFullYear()}-${String(created.getMonth() + 1).padStart(2, "0")}-${String(created.getDate()).padStart(2, "0")}`;
@@ -160,7 +158,7 @@ function save(s: State) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
   } catch {
-    /* quota or private mode: keep working in memory */
+    /* quota or private mode */
   }
 }
 
@@ -210,9 +208,8 @@ export function useClaraStore() {
 
 export type Store = ReturnType<typeof useClaraStore>;
 
-// ---------- Derived values (pure) ----------
+// Derived values
 
-/** Earliest due date (YYYY-MM-DDTHH:MM) of an assignment, for sorting. */
 export function nextDue(a: Assignment): string | null {
   const dates = a.decode.deadlines
     .filter((d) => d.date)
@@ -225,12 +222,10 @@ export function isDone(a: Assignment, i: number): boolean {
   return a.done.includes(a.decode.steps[i]?.action);
 }
 
-/** Index of the first step not done yet, or -1. */
 export function nextStep(a: Assignment): number {
   return a.decode.steps.findIndex((_, i) => !isDone(a, i));
 }
 
-/** Questions for the professor: the picked open points plus those added from the chat. */
 export function teacherQuestions(a: Assignment): string[] {
   return [...a.decode.ambiguities.filter((_, i) => a.picked.includes(i)).map((x) => x.question), ...a.extraQuestions];
 }

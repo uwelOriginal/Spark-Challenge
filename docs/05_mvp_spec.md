@@ -1,4 +1,4 @@
-# 05 — MVP Spec: "Clara" (working name)
+# 05: MVP Spec: "Clara" (working name)
 
 > ## ⚠️ Scope after court (Oct 27): **Clara Lite** is what we build
 > The verdict was GUILTY 12–0 on the full plan; see `court/2026-10-27_clara_verdict.md`. The idea survived; the scope did not. The **build scope is now:**

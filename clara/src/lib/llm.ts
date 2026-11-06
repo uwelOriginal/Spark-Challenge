@@ -4,18 +4,13 @@ import type { z } from "zod";
 import { TRANSCRIBE_SYSTEM } from "@/prompts";
 import { groqStructured, groqTranscribeImage, GROQ_TEXT_MODEL, GROQ_VISION_MODEL, hasGroq, ProviderError } from "./groq";
 
-// The model router. Every AI call goes through here, so cost and provider choices live in one file.
-//
-// Policy (cheapest first): try the free Groq tier, then escalate to Anthropic only when Groq
-// is rate-limited, fails, or its answer fails Clara's own quality check (e.g. quotes that cannot be
-// found word for word in the sources). CLARA_ROUTE overrides the order: "groq" (free only),
-// "anthropic" (paid only) or "groq,anthropic" (default).
+// Model router. Groq free tier first, Anthropic on a rate limit, an error or a failed check.
+// CLARA_ROUTE overrides: "groq", "anthropic" or "groq,anthropic" (default).
 
 const MODEL = process.env.CLARA_MODEL ?? "claude-sonnet-5-5";
 const EFFORT = (process.env.CLARA_EFFORT ?? "medium") as "low" | "medium" | "high";
 
-// Server-side refusal fallback: if the model declines, the API retries on a fallback model.
-// Haiku has no server-side fallback, so the parameter is only sent for other models.
+// API retries on a fallback model after a refusal. Not available for Haiku.
 const fallback = MODEL.startsWith("claude-haiku")
   ? {}
   : { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const };
@@ -24,7 +19,7 @@ export type ClaraErrorCode = "not_configured" | "stt_not_configured" | "busy" | 
 
 export class ClaraError extends Error {
   code: ClaraErrorCode;
-  retryAfter: number | null; // seconds, when the cause was a rate limit that said when to retry
+  retryAfter: number | null; // seconds
   constructor(code: ClaraErrorCode, detail?: string, retryAfter: number | null = null) {
     super(detail ?? code);
     this.code = code;
@@ -37,13 +32,12 @@ export type RouteMeta = { provider: Provider; model: string; escalated: boolean;
 
 const hasAnthropic = () => Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
 
-/** Providers in routing order, keeping only those with a key configured. */
 export function routeOrder(): Provider[] {
   const wanted = (process.env.CLARA_ROUTE ?? "groq,anthropic").split(",").map((s) => s.trim());
   return wanted.filter((p): p is Provider => (p === "groq" && hasGroq()) || (p === "anthropic" && hasAnthropic()));
 }
 
-// ---------- Anthropic ----------
+// Anthropic
 
 let client: Anthropic | null = null;
 function getClient(): Anthropic {
@@ -71,7 +65,7 @@ async function anthropicStructured<S extends z.ZodType>(schema: S, system: strin
     });
     if (response.stop_reason === "refusal") throw new ClaraError("refused");
     if (response.stop_reason === "max_tokens") throw new ProviderError("anthropic", "bad_output", "max_tokens");
-    // Re-validate locally: the schema is the contract with the UI.
+    // validate again, the UI depends on this shape
     const checked = schema.safeParse(response.parsed_output);
     if (!checked.success) throw new ProviderError("anthropic", "bad_output", checked.error.message.slice(0, 200));
     return checked.data;
@@ -80,20 +74,17 @@ async function anthropicStructured<S extends z.ZodType>(schema: S, system: strin
   }
 }
 
-// ---------- Router ----------
+// Router
 
-/**
- * Structured call with cheapest-first routing.
- * `accept` returns null when the answer is good enough, or a reason to escalate to the next provider.
- * If every provider fails the check, the last answer that parsed is returned rather than nothing.
- */
+// `accept` returns null if the answer is fine, or a reason to escalate.
+// If all fail the check, return the last answer that parsed.
 export async function routeStructured<S extends z.ZodType>(opts: {
   task: string;
   schema: S;
   system: string;
   user: string;
   accept?: (data: z.infer<S>) => string | null;
-  /** Restrict providers for this call (e.g. free tier only for bulk work); defaults to CLARA_ROUTE. */
+  // defaults to CLARA_ROUTE
   order?: Provider[];
 }): Promise<{ data: z.infer<S>; meta: RouteMeta }> {
   const order = opts.order ? routeOrder().filter((p) => opts.order!.includes(p)) : routeOrder();
@@ -115,7 +106,7 @@ export async function routeStructured<S extends z.ZodType>(opts: {
       tried.push(`${provider}:${reason}`);
       lastGood = { data, meta };
     } catch (e) {
-      if (e instanceof ClaraError) throw e; // a refusal is final
+      if (e instanceof ClaraError) throw e; // refusals are final
       if (e instanceof ProviderError && e.kind === "rate_limit") {
         rateLimited = true;
         retryAfter = e.retryAfter;
@@ -128,20 +119,17 @@ export async function routeStructured<S extends z.ZodType>(opts: {
 }
 
 function log<T extends { meta: RouteMeta }>(task: string, r: T): T {
-  // Which provider served each task (never the student's content): the basis for cost tracking.
+  // provider only, never content
   console.info("[clara-route]", task, r.meta.provider, r.meta.model, r.meta.tried.join(" ") || "-");
   return r;
 }
 
-// ---------- Reading images and scanned PDFs ----------
+// Images and scanned PDFs
 
 type ImageMediaType = "image/png" | "image/jpeg" | "image/gif" | "image/webp";
 export const IMAGE_TYPES: readonly string[] = ["image/png", "image/jpeg", "image/gif", "image/webp"];
 
-/**
- * Transcribe an image or a scanned PDF to plain text, so the student can review it before decoding.
- * Images: Groq vision first (free), then Anthropic. PDFs: Anthropic (Groq does not read PDFs).
- */
+// Images try Groq first. PDFs go to Anthropic since Groq can't read them.
 export async function transcribe(
   file: { kind: "image"; mediaType: ImageMediaType; base64: string } | { kind: "pdf"; base64: string },
 ): Promise<string> {
@@ -152,7 +140,7 @@ export async function transcribe(
       console.info("[clara-route]", "transcribe", "groq", GROQ_VISION_MODEL);
       return text;
     } catch {
-      /* fall through to Anthropic */
+      /* try Anthropic */
     }
   }
   if (!order.includes("anthropic")) throw new ClaraError(order.length ? "unavailable" : "not_configured");

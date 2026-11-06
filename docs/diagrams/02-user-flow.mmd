@@ -1,0 +1,16 @@
+flowchart LR
+    Start(["Student opens Clara<br/>no account, no diagnosis"]) --> U
+    U["1 · Upload material<br/>drop file · paste · record class<br/>Canvas feed · example"] -->|student reviews the text<br/>keeps only the professor's voice| Read["Read with Clara"]
+    Read --> W
+    subgraph W["2 · Work (one screen)"]
+      direction TB
+      T["Tasks<br/>next step, checklist, quotes<br/>unclear points"]
+      C["Chat<br/>grounded answers with citations<br/>+ add new material → what changed"]
+      S["Optional personal view<br/>interest: football, music, trains…<br/>facts never change"]
+    end
+    W -->|Ask the professor| P["3a · Professor<br/>pick questions → email draft<br/>the student sends it"]
+    W -->|Add to my calendar| K["Calendar and reminders<br/>.ics file · push on installed app"]
+    W -->|Finish| F["3b · Finish<br/>mark finished<br/>optional summary for the mentor"]
+    P -->|back to work| W
+    K -->|back to work| W
+    F -->|back to work| W

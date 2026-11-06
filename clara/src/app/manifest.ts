@@ -1,6 +1,5 @@
 import type { MetadataRoute } from "next";
 
-// Installable on phones (PWA): opens full screen from the home screen.
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",

@@ -1,4 +1,4 @@
-# 09 — Partner Meeting Kit · Thu Oct 29 · Surfeando la Neurodiversidad
+# 09: Partner Meeting Kit · Thu Oct 29 · Surfeando la Neurodiversidad
 
 **Goal:** learn the real pain points *before* they see our idea, then get honest feedback on the Clara Lite demo, then secure real briefs and a test session.
 **Rule from the handbook:** *"Prepare open-ended questions that do not lead participants toward your idea."* So: **discovery first, demo second.** Don't mention Clara until minute ~25.

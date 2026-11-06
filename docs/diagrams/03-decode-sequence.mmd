@@ -1,0 +1,29 @@
+sequenceDiagram
+    actor S as Student
+    participant UI as Browser (actions.ts)
+    participant D as /api/decode
+    participant G as guard.ts
+    participant R as llm.ts router
+    participant M as Model
+    participant V as verify.ts
+
+    S->>UI: Read with Clara (sources S1..S8)
+    UI->>D: sources, language, dialect, today
+    D->>G: access code, rate limit, size
+    G-->>D: allowed
+    D->>D: fence text and wrap in <source> tags
+    D->>R: DECODE_SYSTEM + sources + DecodeSchema
+    loop Cheapest provider first
+      R->>M: structured request
+      M-->>R: JSON that matches the schema
+      R->>V: find each quote in the source it names
+      alt at least 85% of quotes found
+        V-->>R: accept
+      else too few quotes found, or rate limit
+        V-->>R: escalate to the next provider
+      end
+    end
+    R-->>D: decode + provider used
+    D->>V: mark each quote verified, check weekday vs date
+    D-->>UI: facts with verified flags (nothing stored)
+    UI->>S: tasks, quotes, unverified items marked with "!"

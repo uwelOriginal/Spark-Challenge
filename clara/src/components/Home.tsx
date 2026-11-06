@@ -9,8 +9,6 @@ import { byDue, nextDue, type Assignment, type Settings, type Source } from "@/l
 import MaterialInput from "./MaterialInput";
 import { daysUntil, errorText, FlowSteps, formatDate, Icon, Notice } from "./ui";
 
-// Home lists the assignments (next due first). Step 1 of the flow, Upload, is its own screen,
-// and it is also what a first-time student sees instead of an empty list.
 
 export function Home({ t, assignments, onOpen, onNew }: { t: Strings; assignments: Assignment[]; onOpen: (id: string) => void; onNew: () => void }) {
   const active = byDue(assignments.filter((a) => !a.finishedAt));
@@ -56,7 +54,7 @@ function Row({ a, t, onOpen }: { a: Assignment; t: Strings; onOpen: (id: string)
   );
 }
 
-/** Step 1: gather the material, then let Clara read it. */
+// step 1
 export function Upload({ t, voice, settings, onSettings, first, onCreated }: { t: Strings; voice: Voice; settings: Settings; onSettings: (p: Partial<Settings>) => void; first: boolean; onCreated: (a: Assignment) => void }) {
   const [sources, setSources] = useState<Source[]>([]);
   const [busy, setBusy] = useState(false);

@@ -1,4 +1,4 @@
-# 02 — Challenge Partner: Surfeando la Neurodiversidad + Research Plan
+# 02: Challenge Partner: Surfeando la Neurodiversidad + Research Plan
 
 ## 1. Who they are (public facts, verified Oct 27 2026)
 
@@ -139,7 +139,7 @@ Ask the coordinator or surfers for **5–10 real assignment briefs or rubrics th
 
 | Date | Who (role, anonymized) | Method | Key finding / quote | Hypothesis | Confirms / refutes |
 |---|---|---|---|---|---|
-| | | | | | |
+| (team to add) | Partner session (team to add role) | Team to add | Analogies that tie ambiguity to grounded concepts are key for neurodivergent students, alongside high levels of customization for every individual | Led to docs/15 and the Settings screen | New finding |
 
 **Contact attempts log** (protects against "partner non-compliance"):
 

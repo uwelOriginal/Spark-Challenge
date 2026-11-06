@@ -1,6 +1,4 @@
-// Names of the pictures the AI may place in a figure. The model picks from this list only
-// (it is an enum in the schema), so it can never inject markup; the drawings live in
-// components/studio/Glyph.tsx.
+// Pictures the model may use. It's an enum in the schema, so no markup can get in.
 
 export const GLYPHS = [
   // general study

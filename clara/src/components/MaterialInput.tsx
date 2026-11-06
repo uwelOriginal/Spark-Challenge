@@ -9,17 +9,10 @@ import type { SourceKind } from "@/lib/schemas";
 import { mmss, parseTranscriptFile, speakerStats, transcriptText, type Segment } from "@/lib/transcript";
 import { downloadFile, errorText, Icon, Notice } from "./ui";
 
-// One way in for every kind of material. The student drops a file (or pastes, or records);
-// the file type decides the route, and every route ends with text the student has seen:
-//   PDF / photo        → /api/extract → review text → add
-//   paste              → review text → add
-//   .vtt / .srt / .txt → parse; several speakers → keep voices → add, otherwise review → add
-//   audio (short)      → /api/transcribe → keep voices → add
-//   audio (long)       → /api/audio-jobs → passages about coursework → add
-//   Canvas             → /api/canvas → pick an assignment → review text → add
+// Single intake. File type picks the route, and the student always sees the text before it's added.
 
 const KINDS: SourceKind[] = ["brief", "rubric", "class", "announcement", "other"];
-const LONG_AUDIO_BYTES = 20 * 1024 * 1024; // Groq free tier takes 25 MB per file; keep a margin
+const LONG_AUDIO_BYTES = 20 * 1024 * 1024; // Groq limit is 25 MB
 const LONG_AUDIO_SECONDS = 30 * 60;
 
 type Stage =
@@ -37,7 +30,7 @@ export default function MaterialInput({ t, canvasUrl, onCanvasUrl, defaultKind, 
   const [dragging, setDragging] = useState(false);
   const lang = t.locale.startsWith("es") ? "es" : "en";
   const reset = () => setStage({ name: "idle" });
-  // The day of a recording or transcript file: "mañana" in it counts from then, not from the upload.
+  // "mañana" counts from the recording date, not the upload
   const saidOn = useRef<string | undefined>(undefined);
   const add = (s: NewSource) => {
     onAdd(saidOn.current ? { ...s, saidOn: saidOn.current } : s);
@@ -74,7 +67,7 @@ export default function MaterialInput({ t, canvasUrl, onCanvasUrl, defaultKind, 
   async function sendAudio(blob: Blob, fileName: string) {
     setStage({ name: "busy", note: t.transcribing });
     try {
-      // Whole classes go through the background job (split, parallel, resumable).
+      // whole classes go through the background job
       if (blob.size > LONG_AUDIO_BYTES || (await audioSeconds(blob)) > LONG_AUDIO_SECONDS) {
         const { id } = await api.startAudioJob(blob, fileName, lang);
         setStage({ name: "long", id, fileName });
@@ -150,7 +143,6 @@ export default function MaterialInput({ t, canvasUrl, onCanvasUrl, defaultKind, 
   );
 }
 
-/** Text the student checks (or pastes) before it becomes material. */
 function Review({ t, stage, defaultKind, onAdd, onCancel }: { t: Strings; stage: Extract<Stage, { name: "review" }>; defaultKind: SourceKind; onAdd: (s: NewSource) => void; onCancel: () => void }) {
   const [text, setText] = useState(stage.text);
   const [kind, setKind] = useState<SourceKind>(defaultKind);
@@ -177,7 +169,6 @@ function Review({ t, stage, defaultKind, onAdd, onCancel }: { t: Strings; stage:
   );
 }
 
-/** Assignments from the Canvas calendar feed. The student picks one and checks its text like any other material. */
 function CanvasPicker({ t, url, onUrl, onPick, onCancel }: { t: Strings; url: string; onUrl: (u: string) => void; onPick: (text: string, name: string) => void; onCancel: () => void }) {
   const [value, setValue] = useState(url);
   const [busy, setBusy] = useState(false);
@@ -221,7 +212,7 @@ function CanvasPicker({ t, url, onUrl, onPick, onCancel }: { t: Strings; url: st
           <ul className="rows">
             {items.map((it) => (
               <li key={it.uid}>
-                {/* The date lives in the calendar entry, not always in its description, so it goes into the text. */}
+                {/* the date isn't always in the description, so add it to the text */}
                 <button className="row-card" onClick={() => onPick(`${it.title}\n${t.canvasDue}: ${when(it)}\n\n${it.description}`.trim(), `Canvas · ${it.title}`.slice(0, 80))}>
                   <span className="row-main"><span className="row-title">{it.title}</span><span className="muted small">{when(it)}</span></span>
                 </button>
@@ -292,7 +283,7 @@ function Recorder({ t, onDone, onCancel }: { t: Strings; onDone: (blob: Blob, na
   );
 }
 
-/** Choose which voices to keep. Only the kept speakers' words become material. */
+// only kept speakers become material
 function SpeakerPicker({ t, segments, fileName, method, estimated, onAdd, onCancel }: {
   t: Strings;
   segments: Segment[];
@@ -332,7 +323,7 @@ function SpeakerPicker({ t, segments, fileName, method, estimated, onAdd, onCanc
       </ul>
       <details className="quote">
         <summary>{t.preview}</summary>
-        <pre className="source-text">{text || "—"}</pre>
+        <pre className="source-text">{text || "-"}</pre>
       </details>
       <div className="row">
         <button className="btn btn-primary" disabled={!text.trim()} onClick={() => onAdd({ kind: "class", name: fileName, text, method })}>{t.keepSelected}</button>
@@ -342,7 +333,7 @@ function SpeakerPicker({ t, segments, fileName, method, estimated, onAdd, onCanc
   );
 }
 
-/** Duration from the file's metadata; 0 when the browser cannot tell (e.g. live webm recordings). */
+// 0 when the browser can't tell, e.g. live webm
 function audioSeconds(blob: Blob): Promise<number> {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(blob);
@@ -359,11 +350,10 @@ function audioSeconds(blob: Blob): Promise<number> {
   });
 }
 
-/** Progress of a whole-class job, then the coursework passages to review and add. */
 function LongClassJob({ t, id, fileName, onAdd, onCancel }: { t: Strings; id: string; fileName: string; onAdd: (s: NewSource) => void; onCancel: () => void }) {
   const [job, setJob] = useState<AudioJobStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [drop, setDrop] = useState<Set<number>>(new Set()); // passages the student removed
+  const [drop, setDrop] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     let stop = false;

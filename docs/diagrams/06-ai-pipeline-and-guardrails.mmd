@@ -1,0 +1,31 @@
+flowchart LR
+    subgraph IN["Input, treated as data"]
+      A1["Brief · rubric · announcement"]
+      A2["Class transcript<br/>professor's voice only"]
+    end
+    subgraph EX["Extraction: literal"]
+      B1["DECODE_SYSTEM"]
+      B2["CHANGES_SYSTEM"]
+      B3["SPEAKERS · CLASS_EXTRACT · TRANSCRIBE"]
+    end
+    subgraph CK["Checks in code"]
+      C1["Zod schema is the contract"]
+      C2["Every quote found verbatim in its source"]
+      C3["Weekday matches date"]
+    end
+    subgraph EXP["Explanation: labelled analogies"]
+      D1["CHAT_SYSTEM<br/>facts cited, general knowledge marked"]
+      D2["THEME_SYSTEM<br/>rejected if a step is lost or a<br/>date, time or % is invented"]
+    end
+    subgraph OUT["Student decides"]
+      E1["Questions + email draft"]
+      E2["Steps, calendar, reminders"]
+      E3["Settings proposal: apply or undo"]
+      E4["Distress → surfer, mentor, Línea TQueremos"]
+    end
+    A1 & A2 --> B1 & B2 & B3
+    B1 & B2 & B3 --> C1 --> C2 --> C3
+    C3 --> D1 & D2
+    C3 --> E1 & E2
+    D1 --> E3 & E4
+    D2 --> E2

@@ -2,8 +2,7 @@ import { z } from "zod";
 import { GLYPHS } from "./glyphs.ts";
 import { PACK_IDS } from "./personal.ts";
 
-// Shapes the model must return (enforced with structured outputs).
-// Every claim carries a verbatim `quote` plus the `source_id` it came from, so code can check it.
+// What the model must return. Claims carry a verbatim quote and source_id so code can check them.
 
 const Quoted = { quote: z.string(), source_id: z.string() };
 
@@ -18,8 +17,8 @@ export const DecodeSchema = z.object({
     z.object({
       item: z.string(),
       when: z.string(),
-      date: z.string().nullable(), // YYYY-MM-DD, only if the source gives day and month
-      time: z.string().nullable(), // HH:MM 24h, only if the source gives a time
+      date: z.string().nullable(), // YYYY-MM-DD
+      time: z.string().nullable(), // HH:MM
       ...Quoted,
     }),
   ),
@@ -52,12 +51,11 @@ export const ChangesSchema = z.object({
   unchanged: z.array(z.string()),
 });
 
-// A figure Clara draws: data only, rendered by components/studio/Scene.tsx. Pictures come from a
-// fixed list, so the model never writes markup. `step` and `deadline` point into the decode.
+// Figure data, drawn by studio/Scene.tsx. step and deadline index into the decode.
 export const SceneSchema = z.object({
   kind: z.enum(["timeline", "flow", "cards"]),
   title: z.string(),
-  alt: z.string(), // one sentence for screen readers
+  alt: z.string(),
   items: z.array(
     z.object({
       label: z.string(),
@@ -69,11 +67,11 @@ export const SceneSchema = z.object({
   ),
 });
 
-// The interest layer on top of a decoded assignment (docs/15). It relabels, never adds facts.
+// Relabels the decode, never adds facts.
 export const ThemeSchema = z.object({
   pack: z.enum(PACK_IDS),
   intro: z.string(),
-  step_labels: z.array(z.string()), // one per step, same order
+  step_labels: z.array(z.string()), // one per step
   groups: z.array(z.object({ label: z.string(), icon: z.enum(GLYPHS), steps: z.array(z.number()) })),
   analogies: z.array(z.object({ concept: z.string(), analogy: z.string(), where_it_breaks: z.string(), icon: z.enum(GLYPHS) })),
   scenes: z.array(SceneSchema),
@@ -87,8 +85,8 @@ export const ChatSchema = z.object({
   not_in_sources: z.boolean(),
   question_for_professor: z.string().nullable(),
   safety: z.enum(["none", "distress", "ghostwriting"]),
-  visuals: z.array(SceneSchema), // at most one figure, when a picture helps
-  // A proposal the student confirms with a button; see personal.ts changeToPatch for what is reachable.
+  visuals: z.array(SceneSchema),
+  // see changeToPatch in personal.ts
   settings_change: z.object({
     wanted: z.boolean(),
     reason: z.string(),
@@ -112,13 +110,12 @@ export type Changes = z.infer<typeof ChangesSchema>;
 export type Chat = z.infer<typeof ChatSchema>;
 export type Theme = z.infer<typeof ThemeSchema>;
 export type Scene = z.infer<typeof SceneSchema>;
-/** A theme as stored with the assignment: `key` says what it was made from (personal.ts themeKey). */
 export type Themed = Theme & { key: string };
 
 export type SourceKind = "brief" | "rubric" | "class" | "announcement" | "other";
 export type SourceInput = { id: string; kind: SourceKind; name: string; text: string; date?: string };
 
-// After the server checks each quote against the sources.
+// after the quote checks
 export type Checked<T> = T & { verified: boolean };
 export type DateCheck = "ok" | "mismatch" | "unchecked" | "none";
 
@@ -127,7 +124,6 @@ export type DecodeResult = Omit<
   "deliverables" | "deadlines" | "format_requirements" | "grading_criteria" | "ambiguities"
 > & {
   deliverables: Checked<Decode["deliverables"][number]>[];
-  // date_computed: worked out from a relative word. date_set_by_student: chosen by hand, kept across re-reads.
   deadlines: (Checked<Decode["deadlines"][number]> & { date_check: DateCheck; date_computed?: boolean; date_set_by_student?: boolean })[];
   format_requirements: Checked<Decode["format_requirements"][number]>[];
   grading_criteria: Checked<Decode["grading_criteria"][number]>[];

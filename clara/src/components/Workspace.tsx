@@ -14,9 +14,7 @@ import { SceneView } from "./studio/Scene";
 import { ChangeCard, GroupedSteps, InterestCard, StudioExtras, StudioHero, useTheme } from "./studio/Studio";
 import { daysUntil, errorText, FlowSteps, formatDate, Icon, ListenButton, Notice, openCalendar, Quote } from "./ui";
 
-// Step 2: the tasks and the conversation about them, on one screen. Where each panel sits
-// comes from Settings → Workspace (data-layout); on narrow screens one shows at a time.
-// With an interest set, the Studio (studio/Studio.tsx) adds the personal layer on top of the literal tasks.
+// Step 2: tasks and chat on one screen. Panel layout comes from settings.
 
 type Props = {
   a: Assignment;
@@ -30,7 +28,6 @@ type Props = {
   onFinish: () => void;
 };
 
-/** A native date input: the phone's own picker, in the student's language. */
 function DatePicker({ t, label, value, onPick }: { t: Strings; label: string; value?: string; onPick: (date: string) => void }) {
   return (
     <label className="btn btn-small date-pick">
@@ -109,7 +106,7 @@ export default function Workspace(props: Props) {
   );
 }
 
-// ---------- Tasks: summary, next step, checklist, details on demand ----------
+// Tasks
 
 function Tasks({ a, t, settings, voice, onUpdate, onSettings, onOpenSettings, onTeacher }: Props) {
   const d = a.decode;
@@ -220,16 +217,16 @@ function Details({ d, sources, t }: { d: DecodeResult; sources: Source[]; t: Str
   );
 }
 
-// ---------- Chat: grounded answers, plus Clara's notes when new material arrives ----------
+// Chat
 
 function Chat({ a, t, voice, settings, onUpdate, onSettings }: Props) {
   const [text, setText] = useState("");
-  const [busy, setBusy] = useState<string | null>(null); // what Clara is doing, for the live region
+  const [busy, setBusy] = useState<string | null>(null); // for the live region
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    // Braces matter: newer browsers return a Promise from scrollIntoView, and an effect may only return a cleanup.
+    // keep the braces: scrollIntoView can return a Promise, effects may only return a cleanup
     void end.current?.scrollIntoView({ block: "nearest" });
   }, [a.chat.length, busy]);
 

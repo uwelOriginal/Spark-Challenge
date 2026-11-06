@@ -5,12 +5,11 @@ import { profileFor, themeKey } from "./personal";
 import type { DecodeResult, SourceInput, SourceKind, Themed } from "./schemas";
 import { newId, type Assignment, type ChatTurn, type Settings, type Source } from "./store";
 
-// Every AI flow of the app, kept out of the components. Each function takes the current
-// assignment and returns the next one; the caller saves it. Nothing here touches the UI.
+// AI flows. Each takes the assignment and returns the next one, the caller saves it.
 
 export type NewSource = Omit<Source, "id" | "addedAt">;
 
-// Each source says which day it is from, so "mañana" in Tuesday's recording means Wednesday even if uploaded on Friday.
+// "mañana" in Tuesday's recording means Wednesday, even if uploaded Friday
 export const toInputs = (sources: Source[]): SourceInput[] =>
   sources.map(({ id, kind, name, text, addedAt, saidOn }) => ({ id, kind, name, text, date: saidOn ?? localDay(new Date(addedAt)) }));
 
@@ -29,7 +28,7 @@ export function withId(existing: Source[], s: NewSource): Source {
   return { ...s, id: nextSourceId(existing), addedAt: now() };
 }
 
-/** The interest layer for this assignment (docs/15): made from the decode, never from the raw sources. */
+// built from the decode, not the raw sources
 export async function makeTheme(a: Assignment, s: Settings, voice: Voice): Promise<Themed> {
   const d = a.decode;
   const theme = await api.theme(
@@ -52,7 +51,6 @@ export async function makeTheme(a: Assignment, s: Settings, voice: Voice): Promi
   return { ...theme, key: themeKey(s, d.steps) };
 }
 
-/** Short text the chat model gets as context, so it does not re-read everything from scratch. */
 export function summaryText(d: DecodeResult): string {
   return [
     d.title,
@@ -63,7 +61,6 @@ export function summaryText(d: DecodeResult): string {
   ].join("\n");
 }
 
-/** Step 1 → 2: read the uploaded material and save it as a new assignment. */
 export async function createAssignment(sources: Source[], voice: Voice): Promise<Assignment> {
   const decode = await api.decode(toInputs(sources), voice);
   if (decode.not_an_assignment) throw new ApiError("not_an_assignment");
@@ -83,16 +80,13 @@ export async function createAssignment(sources: Source[], voice: Voice): Promise
   };
 }
 
-/**
- * New material during work (an announcement, the rubric, a class recording):
- * re-read everything, keep the steps already done, and post "what changed" in the chat.
- */
+// Re-read everything, keep done steps, post what changed in the chat.
 export async function addMaterial(a: Assignment, s: NewSource, voice: Voice, kindName: (k: SourceKind) => string): Promise<Assignment> {
   const sources = [...a.sources, withId(a.sources, s)];
   const joined = (list: Source[]) => list.map((x) => `${kindName(x.kind)}: ${x.name}\n${x.text}`).join("\n\n");
   const [decode, changes] = await Promise.all([api.decode(toInputs(sources), voice), api.changes(joined(a.sources), joined(sources), voice)]);
   const note: ChatTurn = { role: "assistant", text: s.name, at: now(), changes };
-  // A date the student chose by hand survives the re-read, unless the same deadline now has a date of its own.
+  // a hand-picked date survives unless the deadline now has its own
   const kept = a.decode.deadlines.filter((x) => x.date_set_by_student);
   const deadlines = decode.deadlines.map((x) => {
     const mine = kept.find((k) => k.item === x.item);
@@ -109,12 +103,11 @@ export async function addMaterial(a: Assignment, s: NewSource, voice: Voice, kin
   };
 }
 
-/** Add the student's question to the conversation (shown at once, before the answer arrives). */
 export function withQuestion(a: Assignment, message: string): Assignment {
   return { ...a, chat: [...a.chat, { role: "user", text: message, at: now() }] };
 }
 
-/** Ask Clara about the assignment. `a` already contains the question (see withQuestion). */
+// `a` already includes the question
 export async function answer(a: Assignment, voice: Voice, settings: Settings): Promise<Assignment> {
   const question = a.chat[a.chat.length - 1];
   const history = a.chat.slice(0, -1).filter((c) => !c.changes).map((c) => ({ role: c.role, text: c.text }));
@@ -122,7 +115,7 @@ export async function answer(a: Assignment, voice: Voice, settings: Settings): P
   return { ...a, chat: [...a.chat, { role: "assistant", text: r.answer, at: now(), result: r }] };
 }
 
-/** The student sets or corrects a due date by hand (index -1 adds one when Clara found none). */
+// index -1 adds a new deadline
 export function withDeadlineDate(a: Assignment, index: number, date: string | null, item: string): Assignment {
   const list = a.decode.deadlines;
   const deadlines =
@@ -137,7 +130,6 @@ export function toggleStep(a: Assignment, i: number): Assignment {
   return { ...a, done: a.done.includes(action) ? a.done.filter((x) => x !== action) : [...a.done, action] };
 }
 
-/** Which intake a file goes through, from its type or extension. */
 export function fileRoute(f: File): "document" | "audio" | "transcript" | null {
   const name = f.name.toLowerCase();
   if (/\.(vtt|srt|txt|md)$/.test(name) || f.type.startsWith("text/")) return "transcript";

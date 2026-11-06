@@ -1,8 +1,6 @@
 import type { Lang, SourceKind } from "./schemas";
 
-// All UI text. Plain, literal wording on purpose: no idioms, no exclamation marks, no guilt.
-// Labels are neutral Spanish / English; the regional variant (dialects.ts) changes dates,
-// the reading voice and the AI's wording.
+// UI text. Keep it literal: no idioms, exclamation marks or guilt.
 
 const es = {
   locale: "es-MX",
@@ -250,7 +248,7 @@ const es = {
   accessCodeWrong: "Ese código no es correcto. Revísalo e inténtalo otra vez.",
   accessCodeLabel: "Código de acceso de la demo",
   accessCodeSave: "Continuar",
-  // Personalization and Studio (docs/15)
+  // Studio
   personalTitle: "Personalización",
   personalHelp: "Clara usa lo que te gusta para nombrar y agrupar los pasos, explicarte conceptos con analogías y dibujar figuras. Los datos de la tarea (fechas, citas, requisitos) nunca cambian.",
   interestLabel: "Lo que te gusta",
@@ -544,7 +542,7 @@ const en: typeof es = {
   accessCodeWrong: "That code isn't correct. Check it and try again.",
   accessCodeLabel: "Demo access code",
   accessCodeSave: "Continue",
-  // Personalization and Studio (docs/15)
+  // Studio
   personalTitle: "Personalization",
   personalHelp: "Clara uses what you like to name and group the steps, explain concepts with analogies and draw figures. The assignment's facts (dates, quotes, requirements) never change.",
   interestLabel: "What you like",
@@ -613,7 +611,6 @@ const en: typeof es = {
 export const STRINGS: Record<Lang, typeof es> = { es, en };
 export type Strings = typeof es;
 
-/** Strings with the locale of the chosen regional variant (dates, reading voice). */
 export function strings(lang: Lang, dialect: string): Strings {
   return { ...STRINGS[lang], locale: dialect };
 }

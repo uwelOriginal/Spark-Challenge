@@ -1,4 +1,4 @@
-# 12 — v2 Product Decisions (Oct 27, night): from "Lite demo" to a complete-feeling app
+# 12: v2 Product Decisions (Oct 27, night): from "Lite demo" to a complete-feeling app
 
 **Trigger:** the user tested v1 and found it visually unappealing (no partner brand). It also didn't show enough value over ChatGPT: no class audio or document upload, no history, no notifications, no integrations, and it wasn't mobile-first.
 
